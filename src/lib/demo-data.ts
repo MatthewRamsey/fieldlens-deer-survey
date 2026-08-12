@@ -164,15 +164,15 @@ export const portalUsers: PortalUser[] = [
   {
     id: "admin-matt",
     name: "Matthew Ramsey",
-    email: "admin@fieldlensdemo.com",
-    password: "FieldLensAdmin!",
+    email: "admin@uplandwildlifemanagement.com",
+    password: "UplandAdmin!",
     role: "admin",
     clientIds: clients.map((client) => client.id),
   },
   {
     id: "client-cedar",
     name: "Cedar Ridge Owner",
-    email: "cedar@fieldlensdemo.com",
+    email: "cedar@uplandclients.com",
     password: "CedarClient!",
     role: "client",
     clientIds: ["cedar-ridge"],
@@ -180,7 +180,7 @@ export const portalUsers: PortalUser[] = [
   {
     id: "client-long-creek",
     name: "Long Creek Manager",
-    email: "longcreek@fieldlensdemo.com",
+    email: "longcreek@uplandclients.com",
     password: "LongCreek!",
     role: "client",
     clientIds: ["long-creek"],
@@ -188,7 +188,7 @@ export const portalUsers: PortalUser[] = [
   {
     id: "client-pine-hollow",
     name: "Pine Hollow Manager",
-    email: "pine@fieldlensdemo.com",
+    email: "pine@uplandclients.com",
     password: "PineHollow!",
     role: "client",
     clientIds: ["pine-hollow"],

@@ -33,7 +33,10 @@ type UploadedFolder = BuckFolder & {
   fileNames: string[];
 };
 
-const SESSION_KEY = "fieldlens-session";
+const SESSION_KEY = "upland-wildlife-session";
+const BRAND_NAME = "Upland Wildlife Management";
+const BRAND_LOGO_URL =
+  "https://www.uplandwildlifemanagement.com/lovable-uploads/a22bec12-9028-4ae2-aedf-59a70c278b87.png";
 
 function slugify(value: string) {
   return value
@@ -119,24 +122,27 @@ function LoginPortal({
     <main className="auth-shell">
       <section className="auth-hero">
         <div className="auth-copy">
-          <p className="eyebrow">FieldLens Deer Survey</p>
-          <h1>Year-based property reports and digital buck galleries.</h1>
+          <div className="brand-mark">
+            <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={172} height={44} />
+            <p className="eyebrow">{BRAND_NAME}</p>
+          </div>
+          <h1>Year-based camera survey reports and client-ready buck galleries.</h1>
           <p className="lede">
-            Each property keeps its reports and buck galleries organized by survey year, while the
-            client portal stays limited to the published records for that property alone.
+            Our mission is to help landowners create and implement management programs that allow
+            deer to reach their full genetic potential while meeting their specific land management goals.
           </p>
           <div className="auth-feature-list">
             <article className="auth-feature">
-              <strong>Reports by year</strong>
-              <p>Switch between seasons or lifetime history to open the right survey report set.</p>
+              <strong>Landowner reports by year</strong>
+              <p>Keep each property archive organized by season so clients can open the right survey package quickly.</p>
             </article>
             <article className="auth-feature">
               <strong>Digital buck galleries</strong>
-              <p>Each buck folder can be shared directly and tied to a QR code for the printed book.</p>
+              <p>Share trophy and management buck folders directly and connect them to printed buck-book QR codes.</p>
             </article>
             <article className="auth-feature">
-              <strong>Client-safe access</strong>
-              <p>Clients only see their property and the published documents and galleries you release.</p>
+              <strong>Landowner-safe access</strong>
+              <p>Each client only sees the published records for their own property and survey history.</p>
             </article>
           </div>
         </div>
@@ -167,8 +173,8 @@ function LoginPortal({
             <h2>{authMode === "admin" ? "Admin portal" : "Client portal"}</h2>
             <p>
               {authMode === "admin"
-                ? "Use your admin account to upload reports and galleries for each property year."
-                : "Use a client account to open published reports and digital buck galleries for your property."}
+                ? "Use your Upland admin account to manage reports, galleries, and year-based property archives."
+                : "Use a client account to open published reports and buck galleries for your property."}
             </p>
           </div>
 
@@ -179,7 +185,7 @@ function LoginPortal({
                 autoComplete="username"
                 name="email"
                 onChange={(event) => onEmailChange(event.target.value)}
-                placeholder={authMode === "admin" ? "admin@fieldlensdemo.com" : "cedar@fieldlensdemo.com"}
+                placeholder={authMode === "admin" ? "admin@uplandwildlifemanagement.com" : "cedar@uplandclients.com"}
                 type="email"
                 value={email}
               />
@@ -537,8 +543,11 @@ export function DeerSurveyApp() {
       <main className="shell" id="main-content">
         <section className="topbar" aria-label="Workspace controls">
           <div className="brand-lockup">
-            <p className="eyebrow">FieldLens Deer Survey</p>
-            <h1>{viewMode === "admin" ? "Property archive manager" : "Client property archive"}</h1>
+            <div className="brand-mark">
+              <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
+              <p className="eyebrow">{BRAND_NAME}</p>
+            </div>
+            <h1>{viewMode === "admin" ? "Property archive manager" : "Landowner camera survey portal"}</h1>
           </div>
           <div className="topbar-actions">
             <div className="session-summary">
@@ -595,12 +604,12 @@ export function DeerSurveyApp() {
 
         <section className="hero">
           <div className="hero-copy">
-            <p className="eyebrow">{viewMode === "admin" ? "Archive Workspace" : "Property Archive"}</p>
+            <p className="eyebrow">{viewMode === "admin" ? "Upland Workspace" : "Property Archive"}</p>
             <h2>{client.propertyName}</h2>
             <p className="lede">
               {viewMode === "admin"
-                ? "Upload new reports and gallery folders by survey year, while keeping drafts separated from published client assets."
-                : "Choose a survey year, then open the reports or buck galleries published for this property."}
+                ? "Build annual landowner deliverables, organize buck galleries, and keep draft working files separate from published client records."
+                : "Choose a survey year, then open the published reports and buck galleries prepared for this property."}
             </p>
             <div className="property-meta">
               <span>{client.county}</span>
@@ -641,7 +650,7 @@ export function DeerSurveyApp() {
                   <p className="eyebrow">Archive access</p>
                   <h2>Manage year-based client archives</h2>
                   <p className="section-copy">
-                    Each property can accumulate a new report set and new galleries every year. Use the year selector to review one survey season or the full lifetime archive.
+                    Each property can carry a fresh survey report set and buck galleries every year. Use the year selector to review one season or the full lifetime archive.
                   </p>
                 </div>
               </div>
@@ -896,7 +905,7 @@ export function DeerSurveyApp() {
                   <p className="eyebrow">Digital buck gallery</p>
                   <h2>QR-linked galleries for the selected year or lifetime archive</h2>
                   <p className="section-copy">
-                    Each gallery stays tied to its survey year. Choose a single season to review that year’s folders, or select lifetime to browse every published gallery together.
+                    Each gallery stays tied to its survey year so Upland can support both printed buck books and mobile follow-up viewing.
                   </p>
                 </div>
                 <div className="book-callout">
@@ -954,7 +963,7 @@ export function DeerSurveyApp() {
                 <p className="eyebrow">Published archive</p>
                 <h2>Reports and buck galleries for {yearLabel.toLowerCase()}</h2>
                 <p className="section-copy">
-                  Pick a section below to open the published material for this property. Lifetime combines every released year in one archive.
+                  Open the published material prepared for this property. Lifetime combines every released survey year in one archive.
                 </p>
               </div>
               <div className="client-summary">
