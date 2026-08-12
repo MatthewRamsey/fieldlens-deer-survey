@@ -557,6 +557,51 @@ select {
   background: linear-gradient(180deg, #f8f4ec 0%, #f3ecdf 100%);
 }
 
+.client-portal-card {
+  display: grid;
+  gap: 18px;
+}
+
+.client-summary {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  text-align: right;
+}
+
+.client-summary strong {
+  font-size: 1.05rem;
+}
+
+.client-summary span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.portal-switcher {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.portal-switcher .primary-chip,
+.portal-switcher .ghost-chip {
+  min-height: 42px;
+}
+
+.client-details-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fbf7ef 0%, #f3ecdf 100%);
+}
+
 .client-banner h3 {
   font-size: clamp(1.75rem, 3vw, 2.5rem);
   letter-spacing: -0.04em;
@@ -949,6 +994,10 @@ select {
   margin-top: 18px;
 }
 
+.portal-book-grid {
+  margin-top: 0;
+}
+
 .book-card {
   display: grid;
   grid-template-columns: 104px minmax(0, 1fr) 152px;
@@ -1082,7 +1131,8 @@ select {
   .book-title,
   .camera-heading,
   .review-top,
-  .detection-title {
+  .detection-title,
+  .client-summary {
     display: grid;
   }
 
@@ -1118,8 +1168,14 @@ select {
   .client-banner,
   .status-group,
   .session-summary,
-  .readonly-picker {
+  .readonly-picker,
+  .portal-switcher {
     width: 100%;
+  }
+
+  .client-summary {
+    justify-items: start;
+    text-align: left;
   }
 
   .topbar-actions {
@@ -1131,6 +1187,12 @@ select {
     border: 0;
     background: transparent;
     gap: 8px;
+  }
+
+  .portal-switcher {
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
   .property-meta,
@@ -1248,6 +1310,11 @@ select {
     width: 100%;
   }
 
+  .portal-switcher .primary-chip,
+  .portal-switcher .ghost-chip {
+    width: 100%;
+  }
+
   .map-pin {
     max-width: 96px;
     padding: 7px 8px;
@@ -1300,6 +1367,10 @@ select {
   }
 
   .view-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-switcher {
     grid-template-columns: 1fr;
   }
 
