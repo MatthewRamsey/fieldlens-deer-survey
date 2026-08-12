@@ -126,55 +126,63 @@ function LoginPortal({
             <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={172} height={44} />
             <p className="eyebrow">{BRAND_NAME}</p>
           </div>
-          <h1>Year-based camera survey reports and client-ready buck galleries.</h1>
+          <p className="auth-kicker">Client archive portal</p>
+          <h1>Survey reports and buck galleries without the oversized handoff.</h1>
           <p className="lede">
-            Our mission is to help landowners create and implement management programs that allow
-            deer to reach their full genetic potential while meeting their specific land management goals.
+            Sign in to review year-based deliverables, open published reports, and move between
+            property galleries quickly from a cleaner landing screen.
           </p>
+          <div className="auth-summary-row" aria-label="Portal highlights">
+            <span className="status-pill">Year-based archives</span>
+            <span className="status-pill">Client-safe publishing</span>
+            <span className="status-pill">QR-ready galleries</span>
+          </div>
           <div className="auth-feature-list">
             <article className="auth-feature">
-              <strong>Landowner reports by year</strong>
-              <p>Keep each property archive organized by season so clients can open the right survey package quickly.</p>
+              <strong>For landowners</strong>
+              <p>Open the right property reports by season without sorting through draft material or internal uploads.</p>
             </article>
             <article className="auth-feature">
-              <strong>Digital buck galleries</strong>
-              <p>Share trophy and management buck folders directly and connect them to printed buck-book QR codes.</p>
-            </article>
-            <article className="auth-feature">
-              <strong>Landowner-safe access</strong>
-              <p>Each client only sees the published records for their own property and survey history.</p>
+              <strong>For the Upland team</strong>
+              <p>Switch between client accounts, publish final deliverables, and keep buck galleries aligned to each survey year.</p>
             </article>
           </div>
+          <p className="auth-footnote">
+            Built for a straightforward portal flow: identify the right audience, sign in, and continue into the archive.
+          </p>
         </div>
 
         <div className="auth-card">
-          <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
-            <button
-              aria-selected={authMode === "admin"}
-              className={authMode === "admin" ? "primary-chip active" : "ghost-chip"}
-              onClick={() => onAuthModeChange("admin")}
-              role="tab"
-              type="button"
-            >
-              Admin login
-            </button>
-            <button
-              aria-selected={authMode === "client"}
-              className={authMode === "client" ? "primary-chip active" : "ghost-chip"}
-              onClick={() => onAuthModeChange("client")}
-              role="tab"
-              type="button"
-            >
-              Client login
-            </button>
+          <div className="auth-card-top">
+            <p className="eyebrow">Secure sign in</p>
+            <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
+              <button
+                aria-selected={authMode === "admin"}
+                className={authMode === "admin" ? "primary-chip active" : "ghost-chip"}
+                onClick={() => onAuthModeChange("admin")}
+                role="tab"
+                type="button"
+              >
+                Admin
+              </button>
+              <button
+                aria-selected={authMode === "client"}
+                className={authMode === "client" ? "primary-chip active" : "ghost-chip"}
+                onClick={() => onAuthModeChange("client")}
+                role="tab"
+                type="button"
+              >
+                Client
+              </button>
+            </div>
           </div>
 
           <div className="auth-card-copy">
-            <h2>{authMode === "admin" ? "Admin portal" : "Client portal"}</h2>
+            <h2>{authMode === "admin" ? "Admin workspace" : "Client access"}</h2>
             <p>
               {authMode === "admin"
-                ? "Use your Upland admin account to manage reports, galleries, and year-based property archives."
-                : "Use a client account to open published reports and buck galleries for your property."}
+                ? "Manage property archives, reports, and galleries from a single internal workspace."
+                : "Open the published reports and buck galleries prepared for your property."}
             </p>
           </div>
 
@@ -213,8 +221,10 @@ function LoginPortal({
           {suggestedUser ? (
             <div className="auth-demo">
               <span>Demo credentials</span>
-              <strong>{suggestedUser.email}</strong>
-              <code>{suggestedUser.password}</code>
+              <div className="auth-demo-credentials">
+                <strong>{suggestedUser.email}</strong>
+                <code>{suggestedUser.password}</code>
+              </div>
             </div>
           ) : null}
         </div>
