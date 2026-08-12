@@ -30,6 +30,32 @@ export type Camera = {
   imageCount: number;
 };
 
+export type ClientDocument = {
+  id: string;
+  title: string;
+  category: "Camera survey report" | "Buck book" | "Map export" | "Harvest plan";
+  uploadedAt: string;
+  fileType: "PDF" | "DOCX" | "ZIP";
+  pageCount?: number;
+  visibility: "admin" | "client";
+  status: "Draft" | "Published";
+  notes: string;
+};
+
+export type BuckFolder = {
+  id: string;
+  name: string;
+  buckName: string;
+  classification: "Trophy buck" | "Management buck";
+  imageCount: number;
+  updatedAt: string;
+  source: "SD card" | "Google Drive" | "Manual upload";
+  visibility: "admin" | "client";
+  qrEnabled: boolean;
+  shareUrl: string;
+  notes: string;
+};
+
 export type Client = {
   id: string;
   name: string;
@@ -39,6 +65,8 @@ export type Client = {
   season: string;
   cameras: Camera[];
   detections: Detection[];
+  documents: ClientDocument[];
+  buckFolders: BuckFolder[];
 };
 
 export type PortalUser = {
@@ -67,16 +95,26 @@ export const clients: Client[] = [
       { id: "cam-06", name: "Oak Flat", zone: "East", source: "Google Drive", status: "Reviewed", coords: { x: 82, y: 39 }, lastSync: "Aug 3", imageCount: 1438 },
     ],
     detections: [
-      { id: "det-101", deerName: "Split G2", cameraId: "cam-01", captureTime: "2026-08-02 06:18", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.94, antlerScore: 152, notes: "Shows up on soybean edge twice in daylight.", mediaCount: 18, detailUrl: "https://example.com/cedar-ridge/split-g2" },
-      { id: "det-102", deerName: "Tall Eight", cameraId: "cam-03", captureTime: "2026-08-01 19:42", aiLabel: "Management buck", finalLabel: "Trophy buck", confidence: 0.71, antlerScore: 141, notes: "AI under-called frame width. Good correction candidate.", mediaCount: 11, detailUrl: "https://example.com/cedar-ridge/tall-eight" },
-      { id: "det-103", deerName: "Crabclaw", cameraId: "cam-05", captureTime: "2026-07-31 21:15", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.88, antlerScore: 118, notes: "Mature buck with weak right side.", mediaCount: 9, detailUrl: "https://example.com/cedar-ridge/crabclaw" },
-      { id: "det-104", cameraId: "cam-02", captureTime: "2026-08-03 05:54", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.96, notes: "Adult doe with twin fawns trailing in later frame.", mediaCount: 26, detailUrl: "https://example.com/cedar-ridge/doe-1" },
-      { id: "det-105", cameraId: "cam-02", captureTime: "2026-08-03 05:56", aiLabel: "Fawn", finalLabel: "Fawn", confidence: 0.92, notes: "Fawn pair captured behind adult doe.", mediaCount: 14, detailUrl: "https://example.com/cedar-ridge/fawn-pair" },
-      { id: "det-106", deerName: "Broken Brow", cameraId: "cam-06", captureTime: "2026-08-02 20:03", aiLabel: "Trophy buck", finalLabel: "Management buck", confidence: 0.63, antlerScore: 124, notes: "Heavy body, but antler side damaged and below target threshold.", mediaCount: 13, detailUrl: "https://example.com/cedar-ridge/broken-brow" },
-      { id: "det-107", cameraId: "cam-04", captureTime: "2026-08-04 01:12", aiLabel: "Non-target", finalLabel: "Non-target", confidence: 0.97, notes: "Raccoon cluster at feeder.", mediaCount: 8, detailUrl: "https://example.com/cedar-ridge/non-target" },
-      { id: "det-108", deerName: "Wide Ten", cameraId: "cam-03", captureTime: "2026-08-01 20:08", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.9, antlerScore: 158, notes: "Primary cover buck on creek edge.", mediaCount: 22, detailUrl: "https://example.com/cedar-ridge/wide-ten" },
-      { id: "det-109", cameraId: "cam-01", captureTime: "2026-08-02 06:22", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.95, notes: "Second adult doe in bachelor group follow-up.", mediaCount: 7, detailUrl: "https://example.com/cedar-ridge/doe-2" },
-      { id: "det-110", deerName: "Fork Horn", cameraId: "cam-05", captureTime: "2026-08-01 22:40", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.86, antlerScore: 92, notes: "Younger management buck for client report.", mediaCount: 12, detailUrl: "https://example.com/cedar-ridge/fork-horn" },
+      { id: "det-101", deerName: "Split G2", cameraId: "cam-01", captureTime: "2026-08-02 06:18", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.94, antlerScore: 152, notes: "Shows up on soybean edge twice in daylight.", mediaCount: 18, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/split-g2" },
+      { id: "det-102", deerName: "Tall Eight", cameraId: "cam-03", captureTime: "2026-08-01 19:42", aiLabel: "Management buck", finalLabel: "Trophy buck", confidence: 0.71, antlerScore: 141, notes: "AI under-called frame width. Good correction candidate.", mediaCount: 11, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/tall-eight" },
+      { id: "det-103", deerName: "Crabclaw", cameraId: "cam-05", captureTime: "2026-07-31 21:15", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.88, antlerScore: 118, notes: "Mature buck with weak right side.", mediaCount: 9, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/crabclaw" },
+      { id: "det-104", cameraId: "cam-02", captureTime: "2026-08-03 05:54", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.96, notes: "Adult doe with twin fawns trailing in later frame.", mediaCount: 26, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/library/doe-1" },
+      { id: "det-105", cameraId: "cam-02", captureTime: "2026-08-03 05:56", aiLabel: "Fawn", finalLabel: "Fawn", confidence: 0.92, notes: "Fawn pair captured behind adult doe.", mediaCount: 14, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/library/fawn-pair" },
+      { id: "det-106", deerName: "Broken Brow", cameraId: "cam-06", captureTime: "2026-08-02 20:03", aiLabel: "Trophy buck", finalLabel: "Management buck", confidence: 0.63, antlerScore: 124, notes: "Heavy body, but antler side damaged and below target threshold.", mediaCount: 13, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/broken-brow" },
+      { id: "det-107", cameraId: "cam-04", captureTime: "2026-08-04 01:12", aiLabel: "Non-target", finalLabel: "Non-target", confidence: 0.97, notes: "Raccoon cluster at feeder.", mediaCount: 8, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/library/non-target" },
+      { id: "det-108", deerName: "Wide Ten", cameraId: "cam-03", captureTime: "2026-08-01 20:08", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.9, antlerScore: 158, notes: "Primary cover buck on creek edge.", mediaCount: 22, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/wide-ten" },
+      { id: "det-109", cameraId: "cam-01", captureTime: "2026-08-02 06:22", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.95, notes: "Second adult doe in bachelor group follow-up.", mediaCount: 7, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/library/doe-2" },
+      { id: "det-110", deerName: "Fork Horn", cameraId: "cam-05", captureTime: "2026-08-01 22:40", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.86, antlerScore: 92, notes: "Younger management buck for client report.", mediaCount: 12, detailUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/fork-horn" },
+    ],
+    documents: [
+      { id: "doc-cedar-report", title: "Cedar Ridge 2026 Camera Survey", category: "Camera survey report", uploadedAt: "Aug 5, 2026", fileType: "PDF", pageCount: 24, visibility: "client", status: "Published", notes: "Final reviewed report for landowner delivery." },
+      { id: "doc-cedar-buckbook", title: "Cedar Ridge Trophy and Management Buck Book", category: "Buck book", uploadedAt: "Aug 5, 2026", fileType: "PDF", pageCount: 14, visibility: "client", status: "Published", notes: "Print-ready buck pages with QR links." },
+      { id: "doc-cedar-notes", title: "Correction Notes and AI Review Log", category: "Harvest plan", uploadedAt: "Aug 4, 2026", fileType: "DOCX", visibility: "admin", status: "Draft", notes: "Internal classification notes before publishing." },
+    ],
+    buckFolders: [
+      { id: "folder-cedar-wide-ten", name: "Wide Ten gallery", buckName: "Wide Ten", classification: "Trophy buck", imageCount: 22, updatedAt: "Aug 5, 2026", source: "SD card", visibility: "client", qrEnabled: true, shareUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/wide-ten", notes: "Primary cover buck from Creek Crossing." },
+      { id: "folder-cedar-split-g2", name: "Split G2 daylight set", buckName: "Split G2", classification: "Trophy buck", imageCount: 18, updatedAt: "Aug 5, 2026", source: "SD card", visibility: "client", qrEnabled: true, shareUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/split-g2", notes: "Use this folder in the printed buck book." },
+      { id: "folder-cedar-broken-brow", name: "Broken Brow review folder", buckName: "Broken Brow", classification: "Management buck", imageCount: 13, updatedAt: "Aug 4, 2026", source: "Google Drive", visibility: "admin", qrEnabled: false, shareUrl: "https://fieldlens-deer-survey.vercel.app/cedar-ridge/folders/broken-brow-review", notes: "Internal review images not yet shared with client." },
     ],
   },
   {
@@ -93,11 +131,20 @@ export const clients: Client[] = [
       { id: "cam-14", name: "Mill Road", zone: "West", source: "SD card", status: "Reviewed", coords: { x: 15, y: 62 }, lastSync: "Aug 2", imageCount: 1192 },
     ],
     detections: [
-      { id: "det-201", deerName: "Main Beam 9", cameraId: "cam-11", captureTime: "2026-08-02 19:05", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.91, antlerScore: 147, notes: "Best mature deer on property.", mediaCount: 16, detailUrl: "https://example.com/long-creek/main-beam-9" },
-      { id: "det-202", deerName: "Palmated Six", cameraId: "cam-12", captureTime: "2026-08-03 06:43", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.82, antlerScore: 108, notes: "Distinct left palmation.", mediaCount: 10, detailUrl: "https://example.com/long-creek/palmated-six" },
-      { id: "det-203", cameraId: "cam-13", captureTime: "2026-08-04 00:13", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.94, notes: "Travel corridor doe group.", mediaCount: 24, detailUrl: "https://example.com/long-creek/doe-group" },
-      { id: "det-204", cameraId: "cam-14", captureTime: "2026-08-01 23:58", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.89, notes: "Adult doe on mineral line.", mediaCount: 8, detailUrl: "https://example.com/long-creek/doe-mineral" },
-      { id: "det-205", cameraId: "cam-12", captureTime: "2026-08-03 06:46", aiLabel: "Fawn", finalLabel: "Fawn", confidence: 0.9, notes: "Single spotted fawn.", mediaCount: 6, detailUrl: "https://example.com/long-creek/fawn" },
+      { id: "det-201", deerName: "Main Beam 9", cameraId: "cam-11", captureTime: "2026-08-02 19:05", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.91, antlerScore: 147, notes: "Best mature deer on property.", mediaCount: 16, detailUrl: "https://fieldlens-deer-survey.vercel.app/long-creek/folders/main-beam-9" },
+      { id: "det-202", deerName: "Palmated Six", cameraId: "cam-12", captureTime: "2026-08-03 06:43", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.82, antlerScore: 108, notes: "Distinct left palmation.", mediaCount: 10, detailUrl: "https://fieldlens-deer-survey.vercel.app/long-creek/folders/palmated-six" },
+      { id: "det-203", cameraId: "cam-13", captureTime: "2026-08-04 00:13", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.94, notes: "Travel corridor doe group.", mediaCount: 24, detailUrl: "https://fieldlens-deer-survey.vercel.app/long-creek/library/doe-group" },
+      { id: "det-204", cameraId: "cam-14", captureTime: "2026-08-01 23:58", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.89, notes: "Adult doe on mineral line.", mediaCount: 8, detailUrl: "https://fieldlens-deer-survey.vercel.app/long-creek/library/doe-mineral" },
+      { id: "det-205", cameraId: "cam-12", captureTime: "2026-08-03 06:46", aiLabel: "Fawn", finalLabel: "Fawn", confidence: 0.9, notes: "Single spotted fawn.", mediaCount: 6, detailUrl: "https://fieldlens-deer-survey.vercel.app/long-creek/library/fawn" },
+    ],
+    documents: [
+      { id: "doc-long-report", title: "Long Creek 2026 Camera Survey", category: "Camera survey report", uploadedAt: "Aug 6, 2026", fileType: "PDF", pageCount: 19, visibility: "client", status: "Published", notes: "Client-ready summary and ratio analysis." },
+      { id: "doc-long-map", title: "Long Creek Camera Map Export", category: "Map export", uploadedAt: "Aug 6, 2026", fileType: "PDF", pageCount: 3, visibility: "client", status: "Published", notes: "Camera coverage and habitat overlay." },
+      { id: "doc-long-draft", title: "Long Creek Harvest Strategy Draft", category: "Harvest plan", uploadedAt: "Aug 5, 2026", fileType: "DOCX", visibility: "admin", status: "Draft", notes: "Internal strategy draft before client release." },
+    ],
+    buckFolders: [
+      { id: "folder-long-main-beam", name: "Main Beam 9 gallery", buckName: "Main Beam 9", classification: "Trophy buck", imageCount: 16, updatedAt: "Aug 6, 2026", source: "Google Drive", visibility: "client", qrEnabled: true, shareUrl: "https://fieldlens-deer-survey.vercel.app/long-creek/folders/main-beam-9", notes: "Published buck folder for report and print layout." },
+      { id: "folder-long-palmated", name: "Palmated Six folder", buckName: "Palmated Six", classification: "Management buck", imageCount: 10, updatedAt: "Aug 6, 2026", source: "SD card", visibility: "client", qrEnabled: true, shareUrl: "https://fieldlens-deer-survey.vercel.app/long-creek/folders/palmated-six", notes: "Management folder shared with client." },
     ],
   },
   {
@@ -113,9 +160,17 @@ export const clients: Client[] = [
       { id: "cam-23", name: "West Food Plot", zone: "West", source: "SD card", status: "AI processing", coords: { x: 21, y: 48 }, lastSync: "Aug 4", imageCount: 1311 },
     ],
     detections: [
-      { id: "det-301", deerName: "Roman Nose", cameraId: "cam-21", captureTime: "2026-08-02 20:49", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.93, antlerScore: 154, notes: "Consistent mature buck on ridge line.", mediaCount: 14, detailUrl: "https://example.com/pine-hollow/roman-nose" },
-      { id: "det-302", deerName: "Basket Eight", cameraId: "cam-23", captureTime: "2026-08-03 20:28", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.85, antlerScore: 112, notes: "Good cull candidate.", mediaCount: 9, detailUrl: "https://example.com/pine-hollow/basket-eight" },
-      { id: "det-303", cameraId: "cam-22", captureTime: "2026-08-04 02:41", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.95, notes: "Adult doe at crossing.", mediaCount: 12, detailUrl: "https://example.com/pine-hollow/doe" },
+      { id: "det-301", deerName: "Roman Nose", cameraId: "cam-21", captureTime: "2026-08-02 20:49", aiLabel: "Trophy buck", finalLabel: "Trophy buck", confidence: 0.93, antlerScore: 154, notes: "Consistent mature buck on ridge line.", mediaCount: 14, detailUrl: "https://fieldlens-deer-survey.vercel.app/pine-hollow/folders/roman-nose" },
+      { id: "det-302", deerName: "Basket Eight", cameraId: "cam-23", captureTime: "2026-08-03 20:28", aiLabel: "Management buck", finalLabel: "Management buck", confidence: 0.85, antlerScore: 112, notes: "Good cull candidate.", mediaCount: 9, detailUrl: "https://fieldlens-deer-survey.vercel.app/pine-hollow/folders/basket-eight" },
+      { id: "det-303", cameraId: "cam-22", captureTime: "2026-08-04 02:41", aiLabel: "Doe", finalLabel: "Doe", confidence: 0.95, notes: "Adult doe at crossing.", mediaCount: 12, detailUrl: "https://fieldlens-deer-survey.vercel.app/pine-hollow/library/doe" },
+    ],
+    documents: [
+      { id: "doc-pine-report", title: "Pine Hollow 2026 Camera Survey", category: "Camera survey report", uploadedAt: "Aug 7, 2026", fileType: "PDF", pageCount: 17, visibility: "client", status: "Published", notes: "Published survey report for mobile and print." },
+      { id: "doc-pine-buckbook", title: "Pine Hollow Buck Book Draft", category: "Buck book", uploadedAt: "Aug 7, 2026", fileType: "PDF", pageCount: 8, visibility: "admin", status: "Draft", notes: "Awaiting final image replacements before release." },
+    ],
+    buckFolders: [
+      { id: "folder-pine-roman", name: "Roman Nose gallery", buckName: "Roman Nose", classification: "Trophy buck", imageCount: 14, updatedAt: "Aug 7, 2026", source: "SD card", visibility: "client", qrEnabled: true, shareUrl: "https://fieldlens-deer-survey.vercel.app/pine-hollow/folders/roman-nose", notes: "Published trophy buck image set." },
+      { id: "folder-pine-basket", name: "Basket Eight review folder", buckName: "Basket Eight", classification: "Management buck", imageCount: 9, updatedAt: "Aug 7, 2026", source: "SD card", visibility: "admin", qrEnabled: false, shareUrl: "https://fieldlens-deer-survey.vercel.app/pine-hollow/folders/basket-eight-review", notes: "Hold back until final classification is approved." },
     ],
   },
 ];

@@ -1,14 +1,16 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import {
   clients,
   getCamera,
   portalUsers,
+  type BuckFolder,
   type ClassificationLabel,
   type Client,
+  type ClientDocument,
   type PortalUser,
 } from "@/lib/demo-data";
 
@@ -20,6 +22,18 @@ type Session = {
   clientId: string;
 };
 
+type UploadedDocument = ClientDocument & {
+  clientId: string;
+  fileCount: number;
+  uploadSource: "Desktop upload" | "Google Drive";
+};
+
+type UploadedFolder = BuckFolder & {
+  clientId: string;
+  linkedDetectionId?: string;
+  fileNames: string[];
+};
+
 const SESSION_KEY = "fieldlens-session";
 
 function formatRatio(bucks: number, does: number) {
@@ -28,6 +42,14 @@ function formatRatio(bucks: number, does: number) {
   }
 
   return `1:${(does / Math.max(bucks, 1)).toFixed(1)}`;
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function QrTile({ value }: { value: string }) {
@@ -141,23 +163,23 @@ function LoginPortal({
       <section className="auth-hero">
         <div className="auth-copy">
           <p className="eyebrow">FieldLens Deer Survey</p>
-          <h1>Separate login portals for your clients and your admin workflow.</h1>
+          <h1>Secure admin uploads, client-safe reports, and QR-linked buck folders.</h1>
           <p className="lede">
-            Clients only see their property report, while the admin portal keeps camera ingest,
-            AI review, and cross-property management in one secure workspace.
+            Admin users can upload survey reports, camera images, and buck galleries for any client.
+            Client accounts only see the published assets tied to their own property.
           </p>
           <div className="auth-feature-list">
             <article className="auth-feature">
-              <strong>Admin access</strong>
-              <p>Switch across clients, review classifications, and monitor every survey queue.</p>
+              <strong>Admin control</strong>
+              <p>Upload reports, stage images, and decide exactly which folders or documents are visible.</p>
             </article>
             <article className="auth-feature">
-              <strong>Client portal</strong>
-              <p>Show each landowner only their property dashboard, buck book, and mapped cameras.</p>
+              <strong>Client isolation</strong>
+              <p>Each client is scoped to one property, with no route to view another client’s files or results.</p>
             </article>
             <article className="auth-feature">
-              <strong>Mobile ready</strong>
-              <p>Login, view detections, and open printable reports cleanly from a phone.</p>
+              <strong>QR-ready buck folders</strong>
+              <p>Build folders for trophy and management bucks, then generate a direct QR code for the printed book.</p>
             </article>
           </div>
         </div>
@@ -188,8 +210,8 @@ function LoginPortal({
             <h2>{authMode === "admin" ? "Admin portal" : "Client portal"}</h2>
             <p>
               {authMode === "admin"
-                ? "Use your admin account to review all properties and manage survey output."
-                : "Use a client account to access just one property and its published survey report."}
+                ? "Use your admin account to upload documents, manage image folders, and publish only approved assets."
+                : "Use a client account to view only your property report, shared buck folders, and published survey files."}
             </p>
           </div>
 
@@ -246,6 +268,20 @@ export function DeerSurveyApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<ClassificationLabel | "All">("All");
   const [selectedClientId, setSelectedClientId] = useState(clients[0].id);
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
+  const [uploadedFolders, setUploadedFolders] = useState<UploadedFolder[]>([]);
+  const [documentCategory, setDocumentCategory] = useState<UploadedDocument["category"]>("Camera survey report");
+  const [documentVisibility, setDocumentVisibility] = useState<UploadedDocument["visibility"]>("client");
+  const [documentSource, setDocumentSource] = useState<UploadedDocument["uploadSource"]>("Desktop upload");
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  const [documentNote, setDocumentNote] = useState("");
+  const [folderName, setFolderName] = useState("");
+  const [folderLinkedDetectionId, setFolderLinkedDetectionId] = useState("");
+  const [folderVisibility, setFolderVisibility] = useState<UploadedFolder["visibility"]>("client");
+  const [folderSource, setFolderSource] = useState<UploadedFolder["source"]>("Manual upload");
+  const [folderQrEnabled, setFolderQrEnabled] = useState(true);
+  const [folderFiles, setFolderFiles] = useState<File[]>([]);
+  const [folderNote, setFolderNote] = useState("");
 
   useEffect(() => {
     const stored = window.localStorage.getItem(SESSION_KEY);
@@ -290,10 +326,26 @@ export function DeerSurveyApp() {
     }
   }, [accessibleClientIds, selectedClientId, session]);
 
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const nextSession =
+      session.clientId === selectedClientId ? session : { ...session, clientId: selectedClientId };
+
+    if (nextSession !== session) {
+      setSession(nextSession);
+    }
+
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
+  }, [selectedClientId, session]);
+
   const viewMode: ViewMode = session?.role ?? "client";
+
   const availableClients = useMemo(() => {
     if (!accessibleClientIds.length) {
-      return clients;
+      return [];
     }
 
     return clients.filter((client) => accessibleClientIds.includes(client.id));
@@ -316,12 +368,48 @@ export function DeerSurveyApp() {
     return client.detections.filter((detection) => detection.finalLabel === selectedLabel);
   }, [client, selectedLabel]);
 
+  const clientUploads = useMemo(() => {
+    return uploadedDocuments.filter((entry) => entry.clientId === client.id);
+  }, [client.id, uploadedDocuments]);
+
+  const clientFolders = useMemo(() => {
+    return uploadedFolders.filter((entry) => entry.clientId === client.id);
+  }, [client.id, uploadedFolders]);
+
+  const documents = useMemo(() => {
+    return [...client.documents, ...clientUploads];
+  }, [client.documents, clientUploads]);
+
+  const folders = useMemo(() => {
+    return [...client.buckFolders, ...clientFolders];
+  }, [client.buckFolders, clientFolders]);
+
+  const visibleDocuments = useMemo(() => {
+    return viewMode === "admin"
+      ? documents
+      : documents.filter((document) => document.visibility === "client" && document.status === "Published");
+  }, [documents, viewMode]);
+
+  const visibleFolders = useMemo(() => {
+    return viewMode === "admin"
+      ? folders
+      : folders.filter((folder) => folder.visibility === "client");
+  }, [folders, viewMode]);
+
   const bookEntries = [...summary.trophy, ...summary.management].sort((a, b) => {
     return (b.antlerScore ?? 0) - (a.antlerScore ?? 0);
   });
   const totalBuckCount = summary.trophy.length + summary.management.length;
   const reviewQueueCount = summary.inReview.length + summary.corrections.length;
   const featuredDetections = reviewedDetections.slice(0, viewMode === "admin" ? reviewedDetections.length : 6);
+  const sharedFolderCount = visibleFolders.filter((folder) => folder.visibility === "client").length;
+  const publishedDocumentCount = visibleDocuments.filter((document) => document.status === "Published").length;
+
+  const buckOptions = useMemo(() => {
+    return client.detections.filter((detection) => {
+      return detection.finalLabel === "Trophy buck" || detection.finalLabel === "Management buck";
+    });
+  }, [client.detections]);
 
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -349,7 +437,6 @@ export function DeerSurveyApp() {
     setSelectedClientId(nextSession.clientId);
     setError("");
     setPassword("");
-    window.localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
   }
 
   function handleSignOut() {
@@ -360,6 +447,95 @@ export function DeerSurveyApp() {
     setSelectedLabel("All");
     setAuthMode("client");
     window.localStorage.removeItem(SESSION_KEY);
+  }
+
+  function handleFileSelection(setter: (files: File[]) => void) {
+    return (event: ChangeEvent<HTMLInputElement>) => {
+      setter(Array.from(event.target.files ?? []));
+    };
+  }
+
+  function handleDocumentUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (documentFiles.length === 0) {
+      return;
+    }
+
+    const uploadDate = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const entries = documentFiles.map((file, index) => ({
+      id: `uploaded-doc-${client.id}-${Date.now()}-${index}`,
+      clientId: client.id,
+      title: file.name.replace(/\.[^.]+$/, ""),
+      category: documentCategory,
+      uploadedAt: uploadDate,
+      fileType: file.name.toLowerCase().endsWith(".docx")
+        ? "DOCX"
+        : file.name.toLowerCase().endsWith(".zip")
+          ? "ZIP"
+          : "PDF",
+      visibility: documentVisibility,
+      status: documentVisibility === "client" ? "Published" : "Draft",
+      notes:
+        documentNote ||
+        (documentCategory === "Camera survey report"
+          ? "Uploaded by admin for this client."
+          : "Uploaded as supporting survey material."),
+      fileCount: 1,
+      uploadSource: documentSource,
+    } satisfies UploadedDocument));
+
+    setUploadedDocuments((current) => [...entries, ...current]);
+    setDocumentFiles([]);
+    setDocumentNote("");
+  }
+
+  function handleFolderUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (folderFiles.length === 0 || folderName.trim() === "") {
+      return;
+    }
+
+    const linkedDetection = client.detections.find((detection) => detection.id === folderLinkedDetectionId);
+    const uploadDate = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const slug = slugify(folderName);
+
+    const nextFolder: UploadedFolder = {
+      id: `uploaded-folder-${client.id}-${Date.now()}`,
+      clientId: client.id,
+      name: folderName.trim(),
+      buckName: linkedDetection?.deerName ?? "Unassigned buck",
+      classification:
+        linkedDetection?.finalLabel === "Management buck" ? "Management buck" : "Trophy buck",
+      imageCount: folderFiles.length,
+      updatedAt: uploadDate,
+      source: folderSource,
+      visibility: folderVisibility,
+      qrEnabled: folderQrEnabled,
+      shareUrl: `https://fieldlens-deer-survey.vercel.app/${client.id}/folders/${slug}`,
+      notes: folderNote || "Admin-created image folder for review, publishing, or buck-book linking.",
+      linkedDetectionId: linkedDetection?.id,
+      fileNames: folderFiles.map((file) => file.name),
+    };
+
+    setUploadedFolders((current) => [nextFolder, ...current]);
+    setFolderName("");
+    setFolderLinkedDetectionId("");
+    setFolderFiles([]);
+    setFolderNote("");
+    setFolderQrEnabled(true);
+    setFolderVisibility("client");
+    setFolderSource("Manual upload");
   }
 
   if (!session || !currentUser) {
@@ -405,6 +581,7 @@ export function DeerSurveyApp() {
               <label className="client-picker">
                 <span>Active client</span>
                 <select
+                  aria-label="Active client"
                   value={selectedClientId}
                   onChange={(event) => setSelectedClientId(event.target.value)}
                 >
@@ -434,8 +611,8 @@ export function DeerSurveyApp() {
             <h2>{client.propertyName}</h2>
             <p className="lede">
               {viewMode === "admin"
-                ? "Review ingest status, correct AI buck calls, and publish property totals without exposing cross-client data to landowners."
-                : "View your property dashboard, current deer survey totals, mapped camera coverage, and the printable buck book in one secure portal."}
+                ? "Upload reports, stage image folders, correct AI buck calls, and publish only the assets this client should see."
+                : "View only your property dashboard, published survey files, shared buck folders, and QR-linked buck-book galleries."}
             </p>
             <div className="property-meta">
               <span>{client.county}</span>
@@ -456,31 +633,27 @@ export function DeerSurveyApp() {
                 </strong>
                 <p>
                   {viewMode === "admin"
-                    ? "Cameras or classifications currently need attention."
+                    ? "Cameras, folders, or classifications currently need attention."
                     : `${totalBuckCount} bucks identified against ${summary.does.length} adult does.`}
                 </p>
               </article>
               <article className="metric-card">
-                <span>{viewMode === "admin" ? "Images Ingested" : "Featured Bucks"}</span>
-                <strong>
-                  {viewMode === "admin" ? summary.totalImages.toLocaleString() : bookEntries.length}
-                </strong>
+                <span>{viewMode === "admin" ? "Published Files" : "Shared Folders"}</span>
+                <strong>{viewMode === "admin" ? publishedDocumentCount : sharedFolderCount}</strong>
                 <p>
                   {viewMode === "admin"
-                    ? "Across SD card imports and Drive-connected cameras."
-                    : "Ready for print layout and QR-linked galleries."}
+                    ? "Client-visible documents and buck folders are controlled here."
+                    : "Only published folders and shared buck galleries are visible in your portal."}
                 </p>
               </article>
               <article className="metric-card">
-                <span>{viewMode === "admin" ? "AI Confidence" : "Camera Coverage"}</span>
+                <span>{viewMode === "admin" ? "Images Ingested" : "Camera Coverage"}</span>
                 <strong>
-                  {viewMode === "admin"
-                    ? `${Math.round(summary.confidenceAverage * 100)}%`
-                    : client.cameras.length}
+                  {viewMode === "admin" ? summary.totalImages.toLocaleString() : client.cameras.length}
                 </strong>
                 <p>
                   {viewMode === "admin"
-                    ? "Average confidence before final human review."
+                    ? "Across SD card imports, direct uploads, and Drive-connected cameras."
                     : "Mapped cameras visible on desktop and mobile."}
                 </p>
               </article>
@@ -491,12 +664,12 @@ export function DeerSurveyApp() {
         <section className="workspace-card">
           <div className="workspace-top">
             <div>
-              <p className="eyebrow">Property Summary</p>
-              <h2>{viewMode === "admin" ? "Operational Summary" : "Published Client Report"}</h2>
+              <p className="eyebrow">Secure access</p>
+              <h2>{viewMode === "admin" ? "Admin-only controls and publish gates" : "Published client content only"}</h2>
               <p className="section-copy">
                 {viewMode === "admin"
-                  ? "Admin users can switch properties, watch review queues, and manage outputs without affecting client visibility."
-                  : "Clients are restricted to their own property and only see survey information intended for publication."}
+                  ? "Admin users can move across clients, upload documents, and publish folders. Client accounts are locked to their assigned property and never receive cross-client data."
+                  : "This portal is restricted to your assigned property. Internal review folders, draft documents, and other clients’ data remain hidden."}
               </p>
             </div>
           </div>
@@ -512,7 +685,9 @@ export function DeerSurveyApp() {
               <span className="status-pill">{client.cameras.length} active cameras</span>
               <span className="status-pill">{summary.totalImages.toLocaleString()} images ingested</span>
               <span className="status-pill accent">
-                {viewMode === "admin" ? `${summary.inReview.length} queues need review` : `${bookEntries.length} bucks published`}
+                {viewMode === "admin"
+                  ? `${documents.length} files and folders in this workspace`
+                  : `${visibleDocuments.length} published files visible to client`}
               </span>
             </div>
           </div>
@@ -521,68 +696,146 @@ export function DeerSurveyApp() {
             <article className="metric-card">
               <span>Buck-to-doe ratio</span>
               <strong>{formatRatio(totalBuckCount, summary.does.length)}</strong>
-              <p>{totalBuckCount} identified bucks against {summary.does.length} adult does.</p>
+              <p>
+                {totalBuckCount} identified bucks against {summary.does.length} adult does.
+              </p>
             </article>
             <article className="metric-card">
               <span>Trophy bucks</span>
               <strong>{summary.trophy.length}</strong>
-              <p>Client-ready shortlist for print and mobile view.</p>
+              <p>Top-end deer separated for landowner review and buck-book printing.</p>
             </article>
             <article className="metric-card">
               <span>Management bucks</span>
               <strong>{summary.management.length}</strong>
-              <p>Cull candidates and harvest planning set aside clearly.</p>
+              <p>Management candidates kept distinct from mature targets.</p>
             </article>
             <article className="metric-card">
               <span>AI confidence</span>
               <strong>{Math.round(summary.confidenceAverage * 100)}%</strong>
-              <p>Average model confidence before your final validation pass.</p>
+              <p>Average confidence before your final validation pass.</p>
             </article>
           </div>
 
-          <div className={viewMode === "admin" ? "content-grid" : "content-grid client-grid"}>
+          <div className={viewMode === "admin" ? "content-grid admin-grid" : "content-grid client-grid"}>
             {viewMode === "admin" ? (
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <p className="eyebrow">Camera ingestion</p>
-                    <h3>Upload sources and processing queues</h3>
+                    <p className="eyebrow">Admin uploads</p>
+                    <h3>Upload reports and survey documents</h3>
                   </div>
                 </div>
 
-                <div className="camera-list">
-                  {client.cameras.map((camera) => (
-                    <article className="camera-card" key={camera.id}>
-                      <div className="camera-heading">
+                <form className="upload-form" onSubmit={handleDocumentUpload}>
+                  <div className="form-grid">
+                    <label className="auth-field">
+                      <span>Document category</span>
+                      <select value={documentCategory} onChange={(event) => setDocumentCategory(event.target.value as UploadedDocument["category"])}>
+                        <option>Camera survey report</option>
+                        <option>Buck book</option>
+                        <option>Map export</option>
+                        <option>Harvest plan</option>
+                      </select>
+                    </label>
+                    <label className="auth-field">
+                      <span>Visibility</span>
+                      <select value={documentVisibility} onChange={(event) => setDocumentVisibility(event.target.value as UploadedDocument["visibility"])}>
+                        <option value="client">Publish to client</option>
+                        <option value="admin">Keep admin only</option>
+                      </select>
+                    </label>
+                    <label className="auth-field">
+                      <span>Upload source</span>
+                      <select value={documentSource} onChange={(event) => setDocumentSource(event.target.value as UploadedDocument["uploadSource"])}>
+                        <option value="Desktop upload">Desktop upload</option>
+                        <option value="Google Drive">Google Drive</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="auth-field">
+                    <span>Files</span>
+                    <input multiple type="file" accept=".pdf,.docx,.zip" onChange={handleFileSelection(setDocumentFiles)} />
+                  </label>
+
+                  <label className="auth-field">
+                    <span>Notes</span>
+                    <textarea
+                      rows={3}
+                      value={documentNote}
+                      onChange={(event) => setDocumentNote(event.target.value)}
+                      placeholder="Add context for this upload, such as report version or review status."
+                    />
+                  </label>
+
+                  <div className="upload-summary">
+                    <span>{documentFiles.length} file(s) selected</span>
+                    <button className="primary-chip submit-chip" type="submit">
+                      Add document upload
+                    </button>
+                  </div>
+                </form>
+
+                <div className="asset-list">
+                  {documents.map((document) => (
+                    <article className="asset-card" key={document.id}>
+                      <div className="asset-top">
                         <div>
-                          <h4>{camera.name}</h4>
+                          <h4>{document.title}</h4>
                           <p>
-                            {camera.zone} zone • {camera.source}
+                            {document.category} • {document.fileType}
+                            {"pageCount" in document && document.pageCount ? ` • ${document.pageCount} pages` : ""}
                           </p>
                         </div>
-                        <span className={`camera-status ${camera.status.toLowerCase().replace(" ", "-")}`}>
-                          {camera.status}
+                        <span className={`label-chip ${document.visibility === "client" ? "doe" : "neutral"}`}>
+                          {document.visibility === "client" ? "Client visible" : "Admin only"}
                         </span>
                       </div>
-                      <dl>
-                        <div>
-                          <dt>Images</dt>
-                          <dd>{camera.imageCount.toLocaleString()}</dd>
-                        </div>
-                        <div>
-                          <dt>Last sync</dt>
-                          <dd>{camera.lastSync}</dd>
-                        </div>
-                        <div>
-                          <dt>Camera ID</dt>
-                          <dd>{camera.id.toUpperCase()}</dd>
-                        </div>
-                      </dl>
+                      <p>{document.notes}</p>
+                      <div className="asset-meta">
+                        <span>{document.uploadedAt}</span>
+                        <span>{document.status}</span>
+                        {"uploadSource" in document ? (
+                          <span>{document.uploadSource as UploadedDocument["uploadSource"]}</span>
+                        ) : null}
+                      </div>
                     </article>
                   ))}
                 </div>
               </section>
-            ) : null}
+            ) : (
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <p className="eyebrow">Published files</p>
+                    <h3>Your survey reports and shared documents</h3>
+                  </div>
+                </div>
+
+                <div className="asset-list">
+                  {visibleDocuments.map((document) => (
+                    <article className="asset-card" key={document.id}>
+                      <div className="asset-top">
+                        <div>
+                          <h4>{document.title}</h4>
+                          <p>
+                            {document.category} • {document.fileType}
+                            {document.pageCount ? ` • ${document.pageCount} pages` : ""}
+                          </p>
+                        </div>
+                        <span className="label-chip doe">Published</span>
+                      </div>
+                      <p>{document.notes}</p>
+                      <div className="asset-meta">
+                        <span>{document.uploadedAt}</span>
+                        <span>Assigned to {client.propertyName}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="panel">
               <div className="panel-header">
@@ -611,6 +864,125 @@ export function DeerSurveyApp() {
                 </div>
               </div>
             </section>
+
+            {viewMode === "admin" ? (
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <p className="eyebrow">Image folders</p>
+                    <h3>Build buck folders and generate QR links</h3>
+                  </div>
+                </div>
+
+                <form className="upload-form" onSubmit={handleFolderUpload}>
+                  <div className="form-grid">
+                    <label className="auth-field">
+                      <span>Folder name</span>
+                      <input value={folderName} onChange={(event) => setFolderName(event.target.value)} placeholder="Wide Ten late-summer gallery" />
+                    </label>
+                    <label className="auth-field">
+                      <span>Linked buck</span>
+                      <select value={folderLinkedDetectionId} onChange={(event) => setFolderLinkedDetectionId(event.target.value)}>
+                        <option value="">Select a buck profile</option>
+                        {buckOptions.map((detection) => (
+                          <option key={detection.id} value={detection.id}>
+                            {detection.deerName} ({detection.finalLabel})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="auth-field">
+                      <span>Folder source</span>
+                      <select value={folderSource} onChange={(event) => setFolderSource(event.target.value as UploadedFolder["source"])}>
+                        <option value="Manual upload">Direct upload</option>
+                        <option value="SD card">SD card</option>
+                        <option value="Google Drive">Google Drive</option>
+                      </select>
+                    </label>
+                    <label className="auth-field">
+                      <span>Visibility</span>
+                      <select value={folderVisibility} onChange={(event) => setFolderVisibility(event.target.value as UploadedFolder["visibility"])}>
+                        <option value="client">Share with client</option>
+                        <option value="admin">Keep admin only</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="auth-field">
+                    <span>Survey images</span>
+                    <input multiple type="file" accept="image/*" onChange={handleFileSelection(setFolderFiles)} />
+                  </label>
+
+                  <label className="checkbox-row">
+                    <input checked={folderQrEnabled} type="checkbox" onChange={(event) => setFolderQrEnabled(event.target.checked)} />
+                    <span>Generate QR code option for this folder</span>
+                  </label>
+
+                  <label className="auth-field">
+                    <span>Notes</span>
+                    <textarea
+                      rows={3}
+                      value={folderNote}
+                      onChange={(event) => setFolderNote(event.target.value)}
+                      placeholder="Add notes about the buck, image batch, or intended client usage."
+                    />
+                  </label>
+
+                  <div className="upload-summary">
+                    <span>{folderFiles.length} image(s) selected</span>
+                    <button className="primary-chip submit-chip" type="submit">
+                      Create buck folder
+                    </button>
+                  </div>
+                </form>
+
+                <div className="folder-grid">
+                  {folders.map((folder) => (
+                    <article className="folder-card" key={folder.id}>
+                      <div className="asset-top">
+                        <div>
+                          <h4>{folder.name}</h4>
+                          <p>
+                            {folder.buckName} • {folder.imageCount} images • {folder.source}
+                          </p>
+                        </div>
+                        <span className={`label-chip ${folder.classification === "Trophy buck" ? "trophy" : "management"}`}>
+                          {folder.classification}
+                        </span>
+                      </div>
+                      <p>{folder.notes}</p>
+                      <div className="asset-meta">
+                        <span>{folder.updatedAt}</span>
+                        <span>{folder.visibility === "client" ? "Client shared" : "Admin only"}</span>
+                        <span>{folder.qrEnabled ? "QR enabled" : "No QR"}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <p className="eyebrow">Shared folders</p>
+                    <h3>Buck image folders available to your property</h3>
+                  </div>
+                </div>
+
+                <div className="highlight-list">
+                  {visibleFolders.map((folder) => (
+                    <article className="highlight-card" key={folder.id}>
+                      <span className={`label-chip ${folder.classification === "Trophy buck" ? "trophy" : "management"}`}>
+                        {folder.buckName}
+                      </span>
+                      <p>
+                        {folder.imageCount} images in {folder.name}. This folder belongs only to {client.propertyName}.
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {viewMode === "admin" ? (
               <section className="panel">
@@ -669,8 +1041,8 @@ export function DeerSurveyApp() {
                     <p>Management candidates stay distinct from mature targets for clearer planning.</p>
                   </article>
                   <article className="highlight-card">
-                    <span className="label-chip doe">{summary.does.length} Adult Does</span>
-                    <p>Published totals reflect reviewed classifications instead of raw model output.</p>
+                    <span className="label-chip doe">{visibleDocuments.length} Published Files</span>
+                    <p>Only approved reports, folders, and survey assets are available in this portal.</p>
                   </article>
                 </div>
               </section>
@@ -732,7 +1104,7 @@ export function DeerSurveyApp() {
               <p className="eyebrow">Printable buck book</p>
               <h2>Printable buck pages with QR-linked galleries</h2>
               <p className="section-copy">
-                Each entry stays compact, print-ready, and linked back to the full photo set on the property site.
+                QR codes point only to folders shared for this property. Admin-only review folders are excluded from the client view.
               </p>
             </div>
             <div className="book-callout">
@@ -742,28 +1114,33 @@ export function DeerSurveyApp() {
           </div>
 
           <div className="book-grid">
-            {bookEntries.map((entry) => (
-              <article className="book-card" key={entry.id}>
-                <div className="book-image">
-                  <span>{entry.deerName?.slice(0, 2).toUpperCase() ?? "BK"}</span>
-                </div>
-                <div className="book-copy">
-                  <div className="book-title">
-                    <div>
-                      <h3>{entry.deerName ?? "Buck profile"}</h3>
-                      <p>{entry.antlerScore ? `${entry.antlerScore}" gross` : "Field estimate pending"}</p>
+            {bookEntries.map((entry) => {
+              const sharedFolder = visibleFolders.find((folder) => folder.buckName === (entry.deerName ?? ""));
+
+              return (
+                <article className="book-card" key={entry.id}>
+                  <div className="book-image">
+                    <span>{entry.deerName?.slice(0, 2).toUpperCase() ?? "BK"}</span>
+                  </div>
+                  <div className="book-copy">
+                    <div className="book-title">
+                      <div>
+                        <h3>{entry.deerName ?? "Buck profile"}</h3>
+                        <p>{entry.antlerScore ? `${entry.antlerScore}" gross` : "Field estimate pending"}</p>
+                      </div>
+                      <span className={`label-chip ${classifyTone(entry.finalLabel)}`}>{entry.finalLabel}</span>
                     </div>
-                    <span className={`label-chip ${classifyTone(entry.finalLabel)}`}>{entry.finalLabel}</span>
+                    <p>{entry.notes}</p>
+                    <div className="book-meta">
+                      <span>{entry.mediaCount} linked images</span>
+                      <span>{getCamera(client, entry.cameraId)?.name}</span>
+                      <span>{sharedFolder ? sharedFolder.name : "No client folder published yet"}</span>
+                    </div>
                   </div>
-                  <p>{entry.notes}</p>
-                  <div className="book-meta">
-                    <span>{entry.mediaCount} linked images</span>
-                    <span>{getCamera(client, entry.cameraId)?.name}</span>
-                  </div>
-                </div>
-                <QrTile value={entry.detailUrl} />
-              </article>
-            ))}
+                  {sharedFolder?.qrEnabled ? <QrTile value={sharedFolder.shareUrl} /> : <div className="qr-placeholder" aria-hidden="true" />}
+                </article>
+              );
+            })}
           </div>
         </section>
       </main>

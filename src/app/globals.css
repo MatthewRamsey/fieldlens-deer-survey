@@ -63,6 +63,23 @@ textarea {
   font: inherit;
 }
 
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
 h1,
 h2,
 h3,
@@ -299,8 +316,8 @@ select {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.8fr);
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 18px;
   padding: 26px 28px;
 }
 
@@ -315,6 +332,10 @@ select {
 .hero-copy h2 {
   font-size: clamp(2.4rem, 4vw, 3.9rem);
   letter-spacing: -0.05em;
+}
+
+.hero-panel {
+  padding: 22px;
 }
 
 .eyebrow {
@@ -559,11 +580,15 @@ select {
 }
 
 .metric-grid.compact.split {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 .metric-card {
   padding: 18px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
 }
 
 .metric-card span,
@@ -575,10 +600,16 @@ select {
 
 .metric-card strong {
   display: block;
-  margin: 10px 0 8px;
+  margin: 2px 0 0;
   font-size: clamp(1.8rem, 2.8vw, 2.6rem);
+  line-height: 0.95;
   letter-spacing: -0.05em;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.metric-card p {
+  max-width: 24ch;
 }
 
 .content-grid {
@@ -592,6 +623,10 @@ select {
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
 }
 
+.content-grid.admin-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .panel {
   padding: 20px;
 }
@@ -600,7 +635,9 @@ select {
 .review-list,
 .detection-list,
 .book-grid,
-.highlight-list {
+.highlight-list,
+.asset-list,
+.folder-grid {
   display: grid;
   gap: 12px;
 }
@@ -609,8 +646,69 @@ select {
 .review-card,
 .detection-card,
 .book-card,
-.highlight-card {
+.highlight-card,
+.asset-card,
+.folder-card {
   padding: 16px;
+}
+
+.upload-form,
+.form-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.upload-summary,
+.asset-top,
+.asset-meta,
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-summary,
+.asset-meta {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.checkbox-row {
+  color: var(--muted);
+}
+
+.checkbox-row input {
+  width: 18px;
+  min-height: 18px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+.submit-chip {
+  min-height: 44px;
+}
+
+.asset-card,
+.folder-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-muted);
+}
+
+.asset-card p,
+.folder-card p,
+.asset-meta {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.asset-meta {
+  margin-top: 10px;
+  font-size: 0.86rem;
 }
 
 .camera-card dl {
@@ -854,10 +952,12 @@ select {
   .topbar,
   .hero,
   .content-grid,
+  .content-grid.admin-grid,
   .content-grid.client-grid,
   .book-grid,
   .metric-grid,
-  .metric-grid.compact.split {
+  .metric-grid.compact.split,
+  .form-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1002,7 +1102,9 @@ select {
   .review-card,
   .detection-card,
   .book-card,
-  .highlight-card {
+  .highlight-card,
+  .asset-card,
+  .folder-card {
     padding: 14px;
   }
 
@@ -1060,6 +1162,10 @@ select {
   .property-map {
     min-height: 240px;
     border-radius: 18px;
+  }
+
+  .checkbox-row {
+    align-items: flex-start;
   }
 
   .map-pin {
