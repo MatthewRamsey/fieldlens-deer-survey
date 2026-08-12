@@ -480,6 +480,7 @@ select {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
 }
 
 .workspace-top,
@@ -608,6 +609,22 @@ select {
   overflow-wrap: anywhere;
 }
 
+.metric-card,
+.asset-card,
+.highlight-card,
+.book-card,
+.book-copy,
+.book-title > div {
+  min-width: 0;
+}
+
+.asset-card h4,
+.book-title h3,
+.highlight-card p,
+.book-meta span {
+  overflow-wrap: anywhere;
+}
+
 .metric-card p {
   max-width: 24ch;
 }
@@ -658,14 +675,22 @@ select {
   gap: 14px;
 }
 
+.upload-form {
+  gap: 18px;
+}
+
 .form-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 18px;
 }
 
 .upload-summary,
 .asset-top,
 .asset-meta,
-.checkbox-row {
+.checkbox-row,
+.asset-actions,
+.summary-actions {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -677,8 +702,18 @@ select {
   flex-wrap: wrap;
 }
 
+.upload-summary {
+  margin-top: 4px;
+  align-items: flex-end;
+}
+
+.summary-actions {
+  margin-left: auto;
+}
+
 .checkbox-row {
   color: var(--muted);
+  margin-top: 2px;
 }
 
 .checkbox-row input {
@@ -690,6 +725,11 @@ select {
 
 .submit-chip {
   min-height: 44px;
+}
+
+.action-chip {
+  min-height: 42px;
+  justify-content: center;
 }
 
 .asset-card,
@@ -709,6 +749,11 @@ select {
 .asset-meta {
   margin-top: 10px;
   font-size: 0.86rem;
+}
+
+.asset-actions {
+  margin-top: 14px;
+  flex-wrap: wrap;
 }
 
 .camera-card dl {
@@ -830,6 +875,20 @@ select {
   gap: 12px;
 }
 
+.empty-state {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 18px;
+  background: var(--surface-muted);
+}
+
+.empty-state p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .filter-row {
   justify-content: flex-end;
 }
@@ -877,6 +936,7 @@ select {
   gap: 4px;
   min-width: 180px;
   place-items: center;
+  text-align: center;
 }
 
 .book-callout strong {
@@ -893,7 +953,7 @@ select {
   display: grid;
   grid-template-columns: 104px minmax(0, 1fr) 152px;
   gap: 14px;
-  align-items: center;
+  align-items: start;
 }
 
 .book-image {
@@ -979,7 +1039,7 @@ select {
   }
 
   .book-card {
-    grid-template-columns: 104px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .qr-code,
@@ -1168,6 +1228,26 @@ select {
     align-items: flex-start;
   }
 
+  .upload-summary,
+  .summary-actions {
+    width: 100%;
+  }
+
+  .upload-summary {
+    display: grid;
+    gap: 12px;
+    justify-content: stretch;
+  }
+
+  .summary-actions {
+    margin-left: 0;
+  }
+
+  .submit-chip,
+  .action-chip {
+    width: 100%;
+  }
+
   .map-pin {
     max-width: 96px;
     padding: 7px 8px;
@@ -1186,6 +1266,10 @@ select {
 
   .book-card {
     gap: 12px;
+  }
+
+  .book-title {
+    gap: 10px;
   }
 
   .qr-code,
