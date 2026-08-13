@@ -201,14 +201,17 @@ select {
 }
 
 .auth-centered-top {
-  align-items: start;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }
 
 .auth-centered-title {
   margin-top: 4px;
-  max-width: 12ch;
-  font-size: clamp(2.1rem, 4vw, 3.1rem);
-  line-height: 0.95;
+  max-width: 18ch;
+  font-size: clamp(1.9rem, 3.8vw, 2.8rem);
+  line-height: 1;
+  text-align: center;
 }
 
 .auth-centered-lede {
@@ -216,6 +219,7 @@ select {
   margin-top: 0;
   font-size: 1rem;
   line-height: 1.45;
+  text-align: center;
 }
 
 .auth-centered-grid {
@@ -263,8 +267,8 @@ select {
 
 .auth-card-top {
   display: flex;
-  align-items: start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
 }
 
@@ -276,6 +280,7 @@ select {
   border: 1px solid color-mix(in srgb, var(--auth-accent) 24%, var(--line));
   border-radius: 999px;
   background: color-mix(in srgb, var(--auth-accent-soft) 45%, white);
+  margin: 0 auto;
 }
 
 .auth-card-copy {
@@ -327,6 +332,10 @@ select {
   background: var(--auth-accent);
   color: #fff;
   cursor: pointer;
+}
+
+.auth-submit-centered {
+  text-align: center;
 }
 
 .auth-error {

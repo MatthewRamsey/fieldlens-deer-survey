@@ -133,7 +133,7 @@ function LoginPortal({
 
           <div className="auth-card-top auth-centered-top">
             <div>
-              <h1 className="auth-centered-title">{authMode === "admin" ? "Admin sign in" : "Client sign in"}</h1>
+              <h1 className="auth-centered-title">Upland Wildlife Management Portal</h1>
             </div>
             <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
               <button
@@ -188,7 +188,7 @@ function LoginPortal({
 
                 {error ? <p className="auth-error">{error}</p> : null}
 
-                <button className="auth-submit" type="submit">
+                <button className="auth-submit auth-submit-centered" type="submit">
                   Sign in to {authMode === "admin" ? "admin" : "client"} portal
                 </button>
               </form>
