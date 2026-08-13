@@ -128,13 +128,10 @@ function LoginPortal({
         <div className="auth-card auth-centered-card">
           <div className="brand-mark auth-centered-brand">
             <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={124} height={32} />
-            <p className="eyebrow">{BRAND_NAME}</p>
+            <p className="eyebrow">{BRAND_NAME} Portal</p>
           </div>
 
           <div className="auth-card-top auth-centered-top">
-            <div>
-              <h1 className="auth-centered-title">Upland Wildlife Management Portal</h1>
-            </div>
             <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
               <button
                 aria-selected={authMode === "admin"}

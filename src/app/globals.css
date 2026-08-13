@@ -217,6 +217,8 @@ select {
 .auth-centered-lede {
   max-width: 54ch;
   margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
   font-size: 1rem;
   line-height: 1.45;
   text-align: center;
