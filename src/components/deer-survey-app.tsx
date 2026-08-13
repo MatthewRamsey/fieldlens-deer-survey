@@ -131,30 +131,28 @@ function LoginPortal({
             <p className="eyebrow">{BRAND_NAME} Portal</p>
           </div>
 
-          <div className="auth-card-top auth-centered-top">
-            <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
-              <button
-                aria-selected={authMode === "admin"}
-                className={authMode === "admin" ? "primary-chip active" : "ghost-chip"}
-                onClick={() => onAuthModeChange("admin")}
-                role="tab"
-                type="button"
-              >
-                Admin
-              </button>
-              <button
-                aria-selected={authMode === "client"}
-                className={authMode === "client" ? "primary-chip active" : "ghost-chip"}
-                onClick={() => onAuthModeChange("client")}
-                role="tab"
-                type="button"
-              >
-                Client
-              </button>
-            </div>
-          </div>
-
           <p className="lede auth-centered-lede">{roleSummary}</p>
+
+          <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
+            <button
+              aria-selected={authMode === "admin"}
+              className={authMode === "admin" ? "primary-chip active" : "ghost-chip"}
+              onClick={() => onAuthModeChange("admin")}
+              role="tab"
+              type="button"
+            >
+              Admin
+            </button>
+            <button
+              aria-selected={authMode === "client"}
+              className={authMode === "client" ? "primary-chip active" : "ghost-chip"}
+              onClick={() => onAuthModeChange("client")}
+              role="tab"
+              type="button"
+            >
+              Client
+            </button>
+          </div>
 
           <div className="auth-centered-grid">
             <div className="auth-form-panel">
