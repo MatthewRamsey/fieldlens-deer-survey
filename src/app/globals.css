@@ -183,15 +183,21 @@ select {
 }
 
 .auth-centered-card {
-  width: min(760px, 100%);
+  width: min(720px, 100%);
   display: grid;
-  gap: 18px;
-  padding: 28px;
+  gap: 14px;
+  padding: 22px 24px 24px;
 }
 
 .auth-centered-brand {
   justify-items: center;
   text-align: center;
+  gap: 4px;
+}
+
+.auth-centered-brand .brand-logo {
+  width: 124px;
+  height: auto;
 }
 
 .auth-centered-top {
@@ -199,24 +205,29 @@ select {
 }
 
 .auth-centered-title {
-  margin-top: 6px;
+  margin-top: 4px;
+  max-width: 12ch;
+  font-size: clamp(2.1rem, 4vw, 3.1rem);
+  line-height: 0.95;
 }
 
 .auth-centered-lede {
-  max-width: 62ch;
+  max-width: 54ch;
   margin-top: 0;
+  font-size: 1rem;
+  line-height: 1.45;
 }
 
 .auth-centered-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.95fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 0.82fr) minmax(320px, 1fr);
+  gap: 16px;
   align-items: start;
 }
 
 .auth-copy-compact {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -226,7 +237,7 @@ select {
 
 .auth-form-panel {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .auth-feature-list {
@@ -236,16 +247,16 @@ select {
 }
 
 .auth-feature {
-  padding: 16px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
-  border-radius: 18px;
-  background: rgba(248, 246, 242, 0.82);
+  border-radius: 16px;
+  background: rgba(248, 246, 242, 0.76);
 }
 
 .auth-feature p {
   color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 0.93rem;
+  line-height: 1.42;
 }
 
 .auth-feature-list-single {
@@ -284,7 +295,7 @@ select {
 }
 
 .auth-card-copy h2 {
-  font-size: clamp(1.3rem, 2vw, 1.7rem);
+  font-size: clamp(1.15rem, 1.8vw, 1.4rem);
   letter-spacing: -0.03em;
 }
 
@@ -296,7 +307,7 @@ select {
 
 .auth-form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .auth-field {
@@ -311,8 +322,8 @@ select {
 
 .auth-field input {
   width: 100%;
-  min-height: 44px;
-  padding: 11px 14px;
+  min-height: 42px;
+  padding: 10px 14px;
   border: 1px solid color-mix(in srgb, var(--auth-accent) 20%, var(--line));
   border-radius: 14px;
   background: #fff;
@@ -320,8 +331,8 @@ select {
 }
 
 .auth-submit {
-  min-height: 44px;
-  padding: 11px 16px;
+  min-height: 42px;
+  padding: 10px 16px;
   border: 0;
   border-radius: 14px;
   background: var(--auth-accent);
@@ -341,7 +352,7 @@ select {
 .auth-demo {
   display: grid;
   gap: 8px;
-  padding: 14px;
+  padding: 14px 16px;
   border: 1px dashed color-mix(in srgb, var(--auth-accent) 28%, var(--line-strong));
   border-radius: 16px;
   background: color-mix(in srgb, var(--auth-accent-soft) 36%, white);
@@ -372,6 +383,8 @@ select {
 
 .auth-shell .eyebrow {
   color: var(--auth-theme-strong);
+  font-size: 0.88rem;
+  letter-spacing: 0.22em;
 }
 
 .auth-shell .status-pill {

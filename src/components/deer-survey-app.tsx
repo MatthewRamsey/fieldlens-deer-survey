@@ -120,19 +120,17 @@ function LoginPortal({
   const roleLabel = authMode === "admin" ? "Admin workspace" : "Client archive portal";
   const roleSummary =
     authMode === "admin"
-      ? "Publish reports, curate galleries, and manage year-based property archives from a clearly separated internal workspace."
-      : "Open the published reports and buck galleries prepared for your property without seeing internal draft material.";
+      ? "Manage reports, release approvals, and gallery publishing from the internal Upland workspace."
+      : "Sign in to open your published reports, buck books, and property gallery links.";
   const roleDetails =
     authMode === "admin"
       ? [
-          "Manage year-based landowner archives",
-          "Review and publish client-safe reports",
-          "Keep draft galleries separate from release files",
+          "Publish finalized reports",
+          "Keep draft records internal",
         ]
       : [
-          "Open survey reports and buck books by year",
-          "Browse published gallery links for your property",
-          "View only finished landowner-ready records",
+          "Open finished records by property and year",
+          "Use gallery links prepared for your land",
         ];
 
   return (
@@ -140,7 +138,7 @@ function LoginPortal({
       <section className="auth-hero auth-centered-stage">
         <div className="auth-card auth-centered-card">
           <div className="brand-mark auth-centered-brand">
-            <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={172} height={44} />
+            <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={124} height={32} />
             <p className="eyebrow">{BRAND_NAME}</p>
           </div>
 
@@ -148,7 +146,7 @@ function LoginPortal({
             <div>
               <p className="auth-kicker">{roleLabel}</p>
               <h1 className="auth-centered-title">
-                {authMode === "admin" ? "Admin portal for reports, releases, and gallery control." : "Client portal for survey reports, buck books, and gallery access."}
+                {authMode === "admin" ? "Admin portal for report and gallery publishing." : "Client portal for reports and gallery access."}
               </h1>
             </div>
             <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
@@ -175,20 +173,14 @@ function LoginPortal({
 
           <p className="lede auth-centered-lede">{roleSummary}</p>
 
-          <div className="auth-summary-row" aria-label="Portal details">
-            <span className="status-pill">Year-based archives</span>
-            <span className="status-pill">{authMode === "admin" ? "Internal publishing controls" : "Published client records"}</span>
-            <span className="status-pill">QR-ready galleries</span>
-          </div>
-
           <div className="auth-centered-grid">
             <div className="auth-copy auth-copy-compact">
               <div className="auth-card-copy">
-                <h2>{authMode === "admin" ? "What this workspace handles" : "What you can access here"}</h2>
+                <h2>{authMode === "admin" ? "Workspace use" : "Included in your portal"}</h2>
                 <p>
                   {authMode === "admin"
-                    ? "This workspace is built for the Upland team to manage landowner deliverables before release."
-                    : "This portal is built for landowners to open finished records prepared by Upland Wildlife Management."}
+                    ? "Built for the internal team managing client-ready deliverables before release."
+                    : "Built for landowners to open only finalized records prepared by Upland Wildlife Management."}
                 </p>
               </div>
               <div className="auth-feature-list auth-feature-list-single">
