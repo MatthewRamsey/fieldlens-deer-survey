@@ -117,44 +117,40 @@ function LoginPortal({
     authMode === "admin"
       ? portalUsers.find((user) => user.role === "admin")
       : portalUsers.find((user) => user.role === "client");
+  const roleLabel = authMode === "admin" ? "Admin workspace" : "Client archive portal";
+  const roleSummary =
+    authMode === "admin"
+      ? "Publish reports, curate galleries, and manage year-based property archives from a clearly separated internal workspace."
+      : "Open the published reports and buck galleries prepared for your property without seeing internal draft material.";
+  const roleDetails =
+    authMode === "admin"
+      ? [
+          "Manage year-based landowner archives",
+          "Review and publish client-safe reports",
+          "Keep draft galleries separate from release files",
+        ]
+      : [
+          "Open survey reports and buck books by year",
+          "Browse published gallery links for your property",
+          "View only finished landowner-ready records",
+        ];
 
   return (
-    <main className="auth-shell">
-      <section className="auth-hero">
-        <div className="auth-copy">
-          <div className="brand-mark">
+    <main className="auth-shell" data-auth-mode={authMode}>
+      <section className="auth-hero auth-centered-stage">
+        <div className="auth-card auth-centered-card">
+          <div className="brand-mark auth-centered-brand">
             <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={172} height={44} />
             <p className="eyebrow">{BRAND_NAME}</p>
           </div>
-          <p className="auth-kicker">Client archive portal</p>
-          <h1>Survey reports and buck galleries without the oversized handoff.</h1>
-          <p className="lede">
-            Sign in to review year-based deliverables, open published reports, and move between
-            property galleries quickly from a cleaner landing screen.
-          </p>
-          <div className="auth-summary-row" aria-label="Portal highlights">
-            <span className="status-pill">Year-based archives</span>
-            <span className="status-pill">Client-safe publishing</span>
-            <span className="status-pill">QR-ready galleries</span>
-          </div>
-          <div className="auth-feature-list">
-            <article className="auth-feature">
-              <strong>For landowners</strong>
-              <p>Open the right property reports by season without sorting through draft material or internal uploads.</p>
-            </article>
-            <article className="auth-feature">
-              <strong>For the Upland team</strong>
-              <p>Switch between client accounts, publish final deliverables, and keep buck galleries aligned to each survey year.</p>
-            </article>
-          </div>
-          <p className="auth-footnote">
-            Built for a straightforward portal flow: identify the right audience, sign in, and continue into the archive.
-          </p>
-        </div>
 
-        <div className="auth-card">
-          <div className="auth-card-top">
-            <p className="eyebrow">Secure sign in</p>
+          <div className="auth-card-top auth-centered-top">
+            <div>
+              <p className="auth-kicker">{roleLabel}</p>
+              <h1 className="auth-centered-title">
+                {authMode === "admin" ? "Admin portal for reports, releases, and gallery control." : "Client portal for survey reports, buck books, and gallery access."}
+              </h1>
+            </div>
             <div className="auth-mode-toggle" role="tablist" aria-label="Login mode">
               <button
                 aria-selected={authMode === "admin"}
@@ -177,56 +173,77 @@ function LoginPortal({
             </div>
           </div>
 
-          <div className="auth-card-copy">
-            <h2>{authMode === "admin" ? "Admin workspace" : "Client access"}</h2>
-            <p>
-              {authMode === "admin"
-                ? "Manage property archives, reports, and galleries from a single internal workspace."
-                : "Open the published reports and buck galleries prepared for your property."}
-            </p>
+          <p className="lede auth-centered-lede">{roleSummary}</p>
+
+          <div className="auth-summary-row" aria-label="Portal details">
+            <span className="status-pill">Year-based archives</span>
+            <span className="status-pill">{authMode === "admin" ? "Internal publishing controls" : "Published client records"}</span>
+            <span className="status-pill">QR-ready galleries</span>
           </div>
 
-          <form className="auth-form" onSubmit={onSubmit}>
-            <label className="auth-field">
-              <span>Email</span>
-              <input
-                autoComplete="username"
-                name="email"
-                onChange={(event) => onEmailChange(event.target.value)}
-                placeholder={authMode === "admin" ? "admin@uplandwildlifemanagement.com" : "cedar@uplandclients.com"}
-                type="email"
-                value={email}
-              />
-            </label>
-
-            <label className="auth-field">
-              <span>Password</span>
-              <input
-                autoComplete="current-password"
-                name="password"
-                onChange={(event) => onPasswordChange(event.target.value)}
-                placeholder="Enter your password"
-                type="password"
-                value={password}
-              />
-            </label>
-
-            {error ? <p className="auth-error">{error}</p> : null}
-
-            <button className="auth-submit" type="submit">
-              Sign in to {authMode === "admin" ? "admin" : "client"} portal
-            </button>
-          </form>
-
-          {suggestedUser ? (
-            <div className="auth-demo">
-              <span>Demo credentials</span>
-              <div className="auth-demo-credentials">
-                <strong>{suggestedUser.email}</strong>
-                <code>{suggestedUser.password}</code>
+          <div className="auth-centered-grid">
+            <div className="auth-copy auth-copy-compact">
+              <div className="auth-card-copy">
+                <h2>{authMode === "admin" ? "What this workspace handles" : "What you can access here"}</h2>
+                <p>
+                  {authMode === "admin"
+                    ? "This workspace is built for the Upland team to manage landowner deliverables before release."
+                    : "This portal is built for landowners to open finished records prepared by Upland Wildlife Management."}
+                </p>
+              </div>
+              <div className="auth-feature-list auth-feature-list-single">
+                {roleDetails.map((detail) => (
+                  <article className="auth-feature" key={detail}>
+                    <p>{detail}</p>
+                  </article>
+                ))}
               </div>
             </div>
-          ) : null}
+
+            <div className="auth-form-panel">
+              <form className="auth-form" onSubmit={onSubmit}>
+                <label className="auth-field">
+                  <span>Email</span>
+                  <input
+                    autoComplete="username"
+                    name="email"
+                    onChange={(event) => onEmailChange(event.target.value)}
+                    placeholder={authMode === "admin" ? "admin@uplandwildlifemanagement.com" : "cedar@uplandclients.com"}
+                    type="email"
+                    value={email}
+                  />
+                </label>
+
+                <label className="auth-field">
+                  <span>Password</span>
+                  <input
+                    autoComplete="current-password"
+                    name="password"
+                    onChange={(event) => onPasswordChange(event.target.value)}
+                    placeholder="Enter your password"
+                    type="password"
+                    value={password}
+                  />
+                </label>
+
+                {error ? <p className="auth-error">{error}</p> : null}
+
+                <button className="auth-submit" type="submit">
+                  Sign in to {authMode === "admin" ? "admin" : "client"} portal
+                </button>
+              </form>
+
+              {suggestedUser ? (
+                <div className="auth-demo">
+                  <span>Demo credentials</span>
+                  <div className="auth-demo-credentials">
+                    <strong>{suggestedUser.email}</strong>
+                    <code>{suggestedUser.password}</code>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       </section>
     </main>
