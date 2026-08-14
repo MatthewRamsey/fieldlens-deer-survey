@@ -527,9 +527,9 @@ export function DeerSurveyApp() {
           <div className="brand-lockup">
             <div className="brand-mark">
               <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
-              <p className="eyebrow">{BRAND_NAME}</p>
+              <p className="eyebrow">{BRAND_NAME} Portal</p>
             </div>
-            <h1>{viewMode === "admin" ? "Property archive manager" : "Client archive portal"}</h1>
+            {viewMode === "admin" ? <h1>Property archive manager</h1> : null}
           </div>
           <div className={viewMode === "admin" ? "topbar-actions" : "topbar-actions client-topbar-actions"}>
             <div className="session-summary">

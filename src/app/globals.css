@@ -500,21 +500,17 @@ select {
 }
 
 .client-topbar .brand-lockup {
-  gap: 10px;
-}
-
-.client-topbar .brand-lockup h1 {
-  max-width: 8ch;
-  font-size: clamp(1.55rem, 2.1vw, 2rem);
+  align-content: start;
+  gap: 0;
 }
 
 .client-topbar-actions {
   grid-template-columns: 1fr;
-  justify-items: start;
+  justify-items: end;
 }
 
 .client-topbar-actions .session-summary {
-  justify-content: flex-start;
+  justify-content: space-between;
 }
 
 .client-topbar-filters {
