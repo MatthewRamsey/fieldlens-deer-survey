@@ -883,11 +883,11 @@ export function DeerSurveyApp() {
                   <p className="section-copy">
                     Each gallery stays tied to its survey year so Upland can support both printed buck books and mobile follow-up viewing.
                   </p>
-                </div>
-                <div className="book-callout">
-                  <strong>{visibleFolders.length}</strong>
-                  <span>{visibleBuckBooks.length} buck books</span>
-                  <span>{qrReadyFolders.length} QR-ready galleries</span>
+                  <div className="property-meta gallery-meta">
+                    <span>{visibleFolders.length} galleries</span>
+                    <span>{visibleBuckBooks.length} buck books</span>
+                    <span>{qrReadyFolders.length} QR-ready galleries</span>
+                  </div>
                 </div>
               </div>
 
