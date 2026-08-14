@@ -517,7 +517,7 @@ select {
 .client-topbar-copy {
   display: grid;
   gap: 10px;
-  max-width: 680px;
+  max-width: none;
 }
 
 .client-topbar-copy h1 {
@@ -527,7 +527,7 @@ select {
 }
 
 .client-topbar-copy .lede {
-  max-width: 34ch;
+  max-width: none;
   margin-top: 0;
   font-size: 0.98rem;
 }

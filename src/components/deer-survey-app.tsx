@@ -532,7 +532,6 @@ export function DeerSurveyApp() {
               <h1>Property archive manager</h1>
             ) : (
               <div className="client-topbar-copy">
-                <p className="eyebrow">Property Archive</p>
                 <h1>{client.propertyName}</h1>
                 <p className="lede">Choose a survey year, then open the published reports and buck galleries prepared for this property.</p>
                 <div className="property-meta">
