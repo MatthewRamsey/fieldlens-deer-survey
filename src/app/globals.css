@@ -491,7 +491,7 @@ select {
 }
 
 .client-topbar {
-  grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1.18fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
   align-items: start;
 }
 
@@ -501,16 +501,40 @@ select {
 
 .client-topbar .brand-lockup {
   align-content: start;
-  gap: 0;
+  gap: 10px;
 }
 
 .client-topbar-actions {
   grid-template-columns: 1fr;
   justify-items: end;
+  align-content: start;
 }
 
 .client-topbar-actions .session-summary {
   justify-content: space-between;
+}
+
+.client-topbar-copy {
+  display: grid;
+  gap: 10px;
+  max-width: 680px;
+}
+
+.client-topbar-copy h1 {
+  max-width: none;
+  font-size: clamp(2.6rem, 5vw, 4.4rem);
+  line-height: 0.95;
+}
+
+.client-topbar-copy .lede {
+  max-width: 34ch;
+  margin-top: 0;
+  font-size: 0.98rem;
+}
+
+.client-topbar-year-picker {
+  width: 100%;
+  min-width: 220px;
 }
 
 .topbar-filters {
@@ -786,18 +810,6 @@ select {
 .client-portal-card {
   display: grid;
   gap: 18px;
-}
-
-.client-workspace-top {
-  align-items: start;
-}
-
-.client-archive-copy {
-  max-width: none;
-}
-
-.client-archive-year-picker {
-  min-width: 220px;
 }
 
 .client-summary {

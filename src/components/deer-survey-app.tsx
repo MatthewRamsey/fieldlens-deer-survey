@@ -528,7 +528,19 @@ export function DeerSurveyApp() {
               <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
               <p className="eyebrow">{BRAND_NAME} Portal</p>
             </div>
-            {viewMode === "admin" ? <h1>Property archive manager</h1> : null}
+            {viewMode === "admin" ? (
+              <h1>Property archive manager</h1>
+            ) : (
+              <div className="client-topbar-copy">
+                <p className="eyebrow">Property Archive</p>
+                <h1>{client.propertyName}</h1>
+                <p className="lede">Choose a survey year, then open the published reports and buck galleries prepared for this property.</p>
+                <div className="property-meta">
+                  <span>{client.county}</span>
+                  <span>{client.acreage} acres</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className={viewMode === "admin" ? "topbar-actions" : "topbar-actions client-topbar-actions"}>
             <div className="session-summary">
@@ -576,33 +588,45 @@ export function DeerSurveyApp() {
                 </label>
               </div>
             ) : null}
+
+            {viewMode === "client" ? (
+              <label className="client-picker client-topbar-year-picker">
+                <span>Survey year</span>
+                <select
+                  aria-label="Survey year"
+                  value={selectedYear}
+                  onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                >
+                  {client.surveyYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year} survey year
+                    </option>
+                  ))}
+                  <option value="Lifetime">Lifetime archive</option>
+                </select>
+              </label>
+            ) : null}
           </div>
         </section>
 
-        <section className="hero">
-          <div className="hero-copy">
-            <p className="eyebrow">{viewMode === "admin" ? "Upland Workspace" : "Property Archive"}</p>
-            <h2>{client.propertyName}</h2>
-            <p className="lede">
-              {viewMode === "admin"
-                ? "Build annual landowner deliverables, organize buck galleries, and keep draft working files separate from published client records."
-                : "Choose a survey year, then open the published reports and buck galleries prepared for this property."}
-            </p>
-            <div className="property-meta">
-              <span>{client.county}</span>
-              <span>{client.acreage} acres</span>
-              <span>{yearLabel}</span>
-            </div>
-            {viewMode === "admin" ? (
+        {viewMode === "admin" ? (
+          <section className="hero">
+            <div className="hero-copy">
+              <p className="eyebrow">Upland Workspace</p>
+              <h2>{client.propertyName}</h2>
+              <p className="lede">Build annual landowner deliverables, organize buck galleries, and keep draft working files separate from published client records.</p>
+              <div className="property-meta">
+                <span>{client.county}</span>
+                <span>{client.acreage} acres</span>
+                <span>{yearLabel}</span>
+              </div>
               <div className="status-group hero-status-group">
                 <span className="status-pill">{client.surveyYears.length} tracked survey years</span>
                 <span className="status-pill">{visibleDocuments.length} documents in view</span>
                 <span className="status-pill accent">{visibleFolders.length} galleries in view</span>
               </div>
-            ) : null}
-          </div>
+            </div>
 
-          {viewMode === "admin" ? (
             <div className="hero-panel">
               <span className="panel-title">At a glance</span>
               <div className="metric-grid compact split">
@@ -623,8 +647,8 @@ export function DeerSurveyApp() {
                 </article>
               </div>
             </div>
-          ) : null}
-        </section>
+          </section>
+        ) : null}
 
         {viewMode === "admin" ? (
           <>
@@ -927,31 +951,6 @@ export function DeerSurveyApp() {
           </>
         ) : (
           <section className="workspace-card client-portal-card">
-            <div className="workspace-top client-workspace-top">
-              <div className="client-archive-copy">
-                <p className="eyebrow">Published archive</p>
-                <h2>Reports and buck galleries for {yearLabel.toLowerCase()}</h2>
-                <p className="section-copy">
-                  Open the published material prepared for this property. Lifetime combines every released survey year in one archive.
-                </p>
-              </div>
-              <label className="client-picker client-archive-year-picker">
-                <span>Survey year</span>
-                <select
-                  aria-label="Survey year"
-                  value={selectedYear}
-                  onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
-                >
-                  {client.surveyYears.map((year) => (
-                    <option key={year} value={year}>
-                      {year} survey year
-                    </option>
-                  ))}
-                  <option value="Lifetime">Lifetime archive</option>
-                </select>
-              </label>
-            </div>
-
             <div className="portal-switcher" role="tablist" aria-label="Client archive section">
               <button
                 aria-selected={clientPortalView === "reports"}
