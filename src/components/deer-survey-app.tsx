@@ -523,15 +523,15 @@ export function DeerSurveyApp() {
         Skip to content
       </a>
       <main className="shell" id="main-content">
-        <section className="topbar" aria-label="Workspace controls">
+        <section className={viewMode === "admin" ? "topbar" : "topbar client-topbar"} aria-label="Workspace controls">
           <div className="brand-lockup">
             <div className="brand-mark">
               <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
               <p className="eyebrow">{BRAND_NAME}</p>
             </div>
-            <h1>{viewMode === "admin" ? "Property archive manager" : "Landowner camera survey portal"}</h1>
+            <h1>{viewMode === "admin" ? "Property archive manager" : "Client archive portal"}</h1>
           </div>
-          <div className="topbar-actions">
+          <div className={viewMode === "admin" ? "topbar-actions" : "topbar-actions client-topbar-actions"}>
             <div className="session-summary">
               <span className="status-pill accent">{viewMode === "admin" ? "Admin login" : "Client login"}</span>
               <div className="session-copy">
@@ -543,7 +543,7 @@ export function DeerSurveyApp() {
               </button>
             </div>
 
-            <div className="topbar-filters">
+            <div className={viewMode === "admin" ? "topbar-filters" : "topbar-filters client-topbar-filters"}>
               {viewMode === "admin" ? (
                 <label className="client-picker">
                   <span>Active client</span>

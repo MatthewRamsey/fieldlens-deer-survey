@@ -490,6 +490,38 @@ select {
   min-width: 0;
 }
 
+.client-topbar {
+  grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1.18fr);
+  align-items: start;
+}
+
+.client-topbar .brand-logo {
+  width: 72px;
+}
+
+.client-topbar .brand-lockup {
+  gap: 10px;
+}
+
+.client-topbar .brand-lockup h1 {
+  max-width: 8ch;
+  font-size: clamp(1.55rem, 2.1vw, 2rem);
+}
+
+.client-topbar-actions {
+  grid-template-columns: 1fr;
+  justify-items: start;
+}
+
+.client-topbar-actions .session-summary {
+  justify-content: flex-start;
+}
+
+.client-topbar-filters {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
 .topbar-filters {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));
