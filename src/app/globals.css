@@ -441,32 +441,48 @@ select {
 }
 
 .topbar {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 22px 24px;
-  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.05fr) minmax(0, 1.35fr);
+  align-items: center;
+  gap: 24px;
+  padding: 18px 22px;
+  margin-bottom: 14px;
 }
 
 .brand-lockup {
   display: grid;
-  gap: 10px;
-  max-width: 58ch;
+  gap: 12px;
+  max-width: none;
+}
+
+.topbar .brand-mark {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar .brand-logo {
+  width: 96px;
+}
+
+.topbar .eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
 }
 
 .brand-lockup h1 {
-  font-size: clamp(2rem, 3.8vw, 3.2rem);
-  letter-spacing: -0.035em;
-  line-height: 0.98;
+  max-width: 10ch;
+  font-size: clamp(1.75rem, 2.6vw, 2.35rem);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
 }
 
 .topbar-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(200px, 1fr)) auto;
   align-items: end;
-  justify-content: flex-end;
-  gap: 14px;
+  justify-content: stretch;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -662,6 +678,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--surface-muted);
+  min-width: 0;
 }
 
 .session-copy {
@@ -681,7 +698,7 @@ select {
 .client-picker {
   display: grid;
   gap: 8px;
-  min-width: 240px;
+  min-width: 0;
   color: var(--muted);
   font-size: 0.92rem;
 }
@@ -697,6 +714,7 @@ select {
 
 .signout-chip {
   min-height: 46px;
+  align-self: end;
 }
 
 .client-picker select {
