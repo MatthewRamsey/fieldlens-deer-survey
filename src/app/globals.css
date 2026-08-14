@@ -513,11 +513,6 @@ select {
   justify-content: space-between;
 }
 
-.client-topbar-filters {
-  width: 100%;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
-}
-
 .topbar-filters {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));
@@ -791,6 +786,18 @@ select {
 .client-portal-card {
   display: grid;
   gap: 18px;
+}
+
+.client-workspace-top {
+  align-items: start;
+}
+
+.client-archive-copy {
+  max-width: none;
+}
+
+.client-archive-year-picker {
+  min-width: 220px;
 }
 
 .client-summary {

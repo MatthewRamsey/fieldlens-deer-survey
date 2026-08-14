@@ -363,7 +363,6 @@ export function DeerSurveyApp() {
 
   const publishedReportCount = visibleDocuments.filter((document) => document.status === "Published").length;
   const sharedGalleryCount = visibleFolders.filter((folder) => folder.visibility === "client").length;
-  const totalSharedImages = visibleFolders.reduce((total, folder) => total + folder.imageCount, 0);
   const adminDraftCount =
     viewMode === "admin"
       ? visibleDocuments.filter((document) => document.status === "Draft").length +
@@ -543,8 +542,8 @@ export function DeerSurveyApp() {
               </button>
             </div>
 
-            <div className={viewMode === "admin" ? "topbar-filters" : "topbar-filters client-topbar-filters"}>
-              {viewMode === "admin" ? (
+            {viewMode === "admin" ? (
+              <div className="topbar-filters">
                 <label className="client-picker">
                   <span>Active client</span>
                   <select
@@ -566,11 +565,11 @@ export function DeerSurveyApp() {
                 </div>
               )}
 
-              <label className="client-picker">
-                <span>Archive view</span>
-                <select
-                  aria-label="Archive view"
-                  value={selectedYear}
+                <label className="client-picker">
+                  <span>Archive view</span>
+                  <select
+                    aria-label="Archive view"
+                    value={selectedYear}
                   onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
                 >
                   {client.surveyYears.map((year) => (
@@ -581,7 +580,8 @@ export function DeerSurveyApp() {
                   <option value="Lifetime">Lifetime</option>
                 </select>
               </label>
-            </div>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -933,20 +933,29 @@ export function DeerSurveyApp() {
           </>
         ) : (
           <section className="workspace-card client-portal-card">
-            <div className="workspace-top">
-              <div>
+            <div className="workspace-top client-workspace-top">
+              <div className="client-archive-copy">
                 <p className="eyebrow">Published archive</p>
                 <h2>Reports and buck galleries for {yearLabel.toLowerCase()}</h2>
                 <p className="section-copy">
                   Open the published material prepared for this property. Lifetime combines every released survey year in one archive.
                 </p>
               </div>
-              <div className="client-summary">
-                <strong>
-                  {publishedReportCount} report{publishedReportCount === 1 ? "" : "s"} and {sharedGalleryCount} galler{sharedGalleryCount === 1 ? "y" : "ies"}
-                </strong>
-                <span>{totalSharedImages.toLocaleString()} shared images in this view</span>
-              </div>
+              <label className="client-picker client-archive-year-picker">
+                <span>Survey year</span>
+                <select
+                  aria-label="Survey year"
+                  value={selectedYear}
+                  onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                >
+                  {client.surveyYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year} survey year
+                    </option>
+                  ))}
+                  <option value="Lifetime">Lifetime archive</option>
+                </select>
+              </label>
             </div>
 
             <div className="portal-switcher" role="tablist" aria-label="Client archive section">
