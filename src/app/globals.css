@@ -490,6 +490,49 @@ select {
   min-width: 0;
 }
 
+.admin-topbar {
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 18px;
+}
+
+.admin-topbar-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-topbar-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.admin-topbar-copy {
+  display: grid;
+  gap: 10px;
+  max-width: none;
+}
+
+.admin-topbar-copy h1 {
+  max-width: none;
+  font-size: clamp(2.6rem, 5vw, 4.4rem);
+  line-height: 0.95;
+}
+
+.admin-topbar-copy .lede {
+  max-width: 36ch;
+  margin-top: 0;
+  font-size: 0.98rem;
+}
+
+.admin-topbar-filters {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  align-content: start;
+}
+
 .client-topbar {
   grid-template-columns: 1fr;
   align-items: start;
@@ -733,6 +776,10 @@ select {
 .workspace-top,
 .panel-header.stacked {
   align-items: end;
+}
+
+.panel-header h3 {
+  margin-top: 4px;
 }
 
 .session-summary {

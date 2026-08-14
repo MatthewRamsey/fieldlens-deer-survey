@@ -523,15 +523,12 @@ export function DeerSurveyApp() {
       </a>
       <main className="shell" id="main-content">
         {viewMode === "admin" ? (
-          <section className="topbar" aria-label="Workspace controls">
-            <div className="brand-lockup">
+          <section className="topbar admin-topbar" aria-label="Workspace controls">
+            <div className="admin-topbar-header">
               <div className="brand-mark">
                 <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
                 <p className="eyebrow">{BRAND_NAME} Portal</p>
               </div>
-              <h1>Property archive manager</h1>
-            </div>
-            <div className="topbar-actions">
               <div className="session-summary">
                 <span className="status-pill accent">Admin login</span>
                 <div className="session-copy">
@@ -542,8 +539,26 @@ export function DeerSurveyApp() {
                   Sign out
                 </button>
               </div>
+            </div>
 
-              <div className="topbar-filters">
+            <div className="admin-topbar-body">
+              <div className="admin-topbar-copy">
+                <p className="eyebrow">Upland Workspace</p>
+                <h1>{client.propertyName}</h1>
+                <p className="lede">Build annual landowner deliverables, organize buck galleries, and keep draft working files separate from published client records.</p>
+                <div className="property-meta">
+                  <span>{client.county}</span>
+                  <span>{client.acreage} acres</span>
+                  <span>{yearLabel}</span>
+                </div>
+                <div className="status-group hero-status-group">
+                  <span className="status-pill">{client.surveyYears.length} tracked survey years</span>
+                  <span className="status-pill">{visibleDocuments.length} documents in view</span>
+                  <span className="status-pill accent">{visibleFolders.length} galleries in view</span>
+                </div>
+              </div>
+
+              <div className="topbar-filters admin-topbar-filters">
                 <label className="client-picker">
                   <span>Active client</span>
                   <select
@@ -620,47 +635,6 @@ export function DeerSurveyApp() {
             </div>
           </section>
         )}
-
-        {viewMode === "admin" ? (
-          <section className="hero">
-            <div className="hero-copy">
-              <p className="eyebrow">Upland Workspace</p>
-              <h2>{client.propertyName}</h2>
-              <p className="lede">Build annual landowner deliverables, organize buck galleries, and keep draft working files separate from published client records.</p>
-              <div className="property-meta">
-                <span>{client.county}</span>
-                <span>{client.acreage} acres</span>
-                <span>{yearLabel}</span>
-              </div>
-              <div className="status-group hero-status-group">
-                <span className="status-pill">{client.surveyYears.length} tracked survey years</span>
-                <span className="status-pill">{visibleDocuments.length} documents in view</span>
-                <span className="status-pill accent">{visibleFolders.length} galleries in view</span>
-              </div>
-            </div>
-
-            <div className="hero-panel">
-              <span className="panel-title">At a glance</span>
-              <div className="metric-grid compact split">
-                <article className="metric-card">
-                  <span>Reports</span>
-                  <strong>{publishedReportCount}</strong>
-                  <p>Survey reports, buck books, and supporting documents in this archive view.</p>
-                </article>
-                <article className="metric-card">
-                  <span>Galleries</span>
-                  <strong>{sharedGalleryCount}</strong>
-                  <p>Digital buck galleries currently available for this property-year selection.</p>
-                </article>
-                <article className="metric-card">
-                  <span>Draft assets</span>
-                  <strong>{adminDraftCount}</strong>
-                  <p>Admin-only reports and galleries held back from the client view.</p>
-                </article>
-              </div>
-            </div>
-          </section>
-        ) : null}
 
         {viewMode === "admin" ? (
           <>
