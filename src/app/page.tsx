@@ -1,9 +1,20 @@
+import { redirect } from "next/navigation";
 import { AuthPortal } from "@/components/auth-portal";
 import { DeerSurveyApp } from "@/components/deer-survey-app";
 import { SetupPanel } from "@/components/setup-panel";
 import { getPortalAppState } from "@/lib/portal-data";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>;
+}) {
+  const { code } = await searchParams;
+
+  if (code) {
+    redirect(`/auth/confirm?code=${encodeURIComponent(code)}`);
+  }
+
   const appState = await getPortalAppState();
 
   if (appState.setupMode) {
