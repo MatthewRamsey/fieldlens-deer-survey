@@ -529,7 +529,7 @@ select {
 }
 
 .admin-topbar-filters {
-  grid-template-columns: minmax(220px, 360px);
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   justify-content: end;
   align-content: start;
 }
@@ -552,6 +552,13 @@ select {
   gap: 20px;
 }
 
+.client-topbar-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr);
+  align-items: start;
+  gap: 24px;
+}
+
 .client-topbar-copy {
   display: grid;
   gap: 10px;
@@ -570,18 +577,10 @@ select {
   font-size: 0.98rem;
 }
 
-.property-meta-select {
-  min-width: 220px;
-}
-
-.property-meta-select select {
-  min-width: 220px;
-  width: auto;
-  padding: 7px 40px 7px 14px;
-  min-height: 38px;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--muted);
+.client-topbar-filters {
+  grid-template-columns: minmax(220px, 360px);
+  justify-content: end;
+  align-content: start;
 }
 
 .topbar-filters {

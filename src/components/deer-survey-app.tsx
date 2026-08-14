@@ -546,20 +546,6 @@ export function DeerSurveyApp() {
                 <div className="property-meta">
                   <span>{client.county}</span>
                   <span>{client.acreage} acres</span>
-                  <label className="property-meta-select">
-                    <select
-                      aria-label="Archive view"
-                      value={selectedYear}
-                      onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
-                    >
-                      {client.surveyYears.map((year) => (
-                        <option key={year} value={year}>
-                          {year} survey year
-                        </option>
-                      ))}
-                      <option value="Lifetime">Lifetime archive</option>
-                    </select>
-                  </label>
                 </div>
               </div>
 
@@ -576,6 +562,22 @@ export function DeerSurveyApp() {
                         {entry.name}
                       </option>
                     ))}
+                  </select>
+                </label>
+
+                <label className="client-picker">
+                  <span>Survey year</span>
+                  <select
+                    aria-label="Archive view"
+                    value={selectedYear}
+                    onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                  >
+                    {client.surveyYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year} survey year
+                      </option>
+                    ))}
+                    <option value="Lifetime">Lifetime archive</option>
                   </select>
                 </label>
               </div>
@@ -600,13 +602,19 @@ export function DeerSurveyApp() {
               </div>
             </div>
 
-            <div className="client-topbar-copy">
-              <h1>{client.propertyName}</h1>
-              <p className="lede">Choose a survey year, then open the published reports and buck galleries prepared for this property.</p>
-              <div className="property-meta">
-                <span>{client.county}</span>
-                <span>{client.acreage} acres</span>
-                <label className="property-meta-select">
+            <div className="client-topbar-body">
+              <div className="client-topbar-copy">
+                <h1>{client.propertyName}</h1>
+                <p className="lede">Choose a survey year, then open the published reports and buck galleries prepared for this property.</p>
+                <div className="property-meta">
+                  <span>{client.county}</span>
+                  <span>{client.acreage} acres</span>
+                </div>
+              </div>
+
+              <div className="topbar-filters client-topbar-filters">
+                <label className="client-picker">
+                  <span>Survey year</span>
                   <select
                     aria-label="Survey year"
                     value={selectedYear}
