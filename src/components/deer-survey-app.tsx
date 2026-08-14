@@ -558,28 +558,22 @@ export function DeerSurveyApp() {
                     ))}
                   </select>
                 </label>
-              ) : (
-                <div className="client-picker readonly-picker">
-                  <span>Assigned client</span>
-                  <div className="readonly-value">{client.name}</div>
-                </div>
-              )}
 
                 <label className="client-picker">
                   <span>Archive view</span>
                   <select
                     aria-label="Archive view"
                     value={selectedYear}
-                  onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
-                >
-                  {client.surveyYears.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                  <option value="Lifetime">Lifetime</option>
-                </select>
-              </label>
+                    onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                  >
+                    {client.surveyYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                    <option value="Lifetime">Lifetime</option>
+                  </select>
+                </label>
               </div>
             ) : null}
           </div>
