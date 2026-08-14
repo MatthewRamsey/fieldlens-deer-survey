@@ -81,6 +81,10 @@ textarea {
   color: var(--ink);
 }
 
+select {
+  padding-right: 42px;
+}
+
 textarea {
   min-height: 88px;
   resize: vertical;
@@ -479,11 +483,18 @@ select {
 
 .topbar-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(200px, 1fr)) auto;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, auto);
+  align-items: center;
   justify-content: stretch;
   gap: 12px;
   min-width: 0;
+}
+
+.topbar-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
 }
 
 .view-toggle {
@@ -518,6 +529,10 @@ select {
 
 .hero-panel {
   padding: 22px;
+}
+
+.hero-status-group {
+  margin-top: 16px;
 }
 
 .eyebrow {
@@ -679,11 +694,14 @@ select {
   border-radius: 18px;
   background: var(--surface-muted);
   min-width: 0;
+  justify-content: space-between;
 }
 
 .session-copy {
   display: grid;
   gap: 2px;
+  min-width: 0;
+  margin-right: auto;
 }
 
 .session-copy strong {
@@ -714,12 +732,13 @@ select {
 
 .signout-chip {
   min-height: 46px;
-  align-self: end;
+  align-self: center;
+  flex-shrink: 0;
 }
 
 .client-picker select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 42px 12px 16px;
   background: #fff;
   border-color: var(--line);
   color: var(--ink);

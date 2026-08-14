@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Upland Wildlife Management",
+  title: "Upland Wildlife Management Portal",
   description:
-    "A branded deer camera survey and reporting portal for Upland Wildlife Management, built for landowner reporting, buck galleries, and year-based property archives.",
+    "Upland Wildlife Management Portal for landowner reporting, buck galleries, and year-based property archives.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

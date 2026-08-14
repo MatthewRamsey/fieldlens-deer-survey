@@ -47,7 +47,7 @@ function slugify(value: string) {
 }
 
 function buildDocumentUrl(clientId: string, surveyYear: SurveyYear, documentId: string) {
-  return `https://fieldlens-deer-survey.vercel.app/${clientId}/${surveyYear}/documents/${documentId}`;
+  return `/${clientId}/${surveyYear}/documents/${documentId}`;
 }
 
 function QrTile({ value }: { value: string }) {
@@ -482,7 +482,7 @@ export function DeerSurveyApp() {
       source: folderSource,
       visibility: folderVisibility,
       qrEnabled: folderQrEnabled,
-      shareUrl: `https://fieldlens-deer-survey.vercel.app/${client.id}/${folderYear}/folders/${slug}`,
+      shareUrl: `/${client.id}/${folderYear}/folders/${slug}`,
       notes: folderNote || `Digital gallery added to the ${folderYear} archive.`,
       fileNames: folderFiles.map((file) => file.name),
     };
@@ -538,49 +538,50 @@ export function DeerSurveyApp() {
                 <strong>{currentUser.name}</strong>
                 <span>{currentUser.email}</span>
               </div>
+              <button className="ghost-chip signout-chip" onClick={handleSignOut} type="button">
+                Sign out
+              </button>
             </div>
 
-            {viewMode === "admin" ? (
+            <div className="topbar-filters">
+              {viewMode === "admin" ? (
+                <label className="client-picker">
+                  <span>Active client</span>
+                  <select
+                    aria-label="Active client"
+                    value={selectedClientId}
+                    onChange={(event) => setSelectedClientId(event.target.value)}
+                  >
+                    {availableClients.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <div className="client-picker readonly-picker">
+                  <span>Assigned client</span>
+                  <div className="readonly-value">{client.name}</div>
+                </div>
+              )}
+
               <label className="client-picker">
-                <span>Active client</span>
+                <span>Archive view</span>
                 <select
-                  aria-label="Active client"
-                  value={selectedClientId}
-                  onChange={(event) => setSelectedClientId(event.target.value)}
+                  aria-label="Archive view"
+                  value={selectedYear}
+                  onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
                 >
-                  {availableClients.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.name}
+                  {client.surveyYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
                     </option>
                   ))}
+                  <option value="Lifetime">Lifetime</option>
                 </select>
               </label>
-            ) : (
-              <div className="client-picker readonly-picker">
-                <span>Assigned client</span>
-                <div className="readonly-value">{client.name}</div>
-              </div>
-            )}
-
-            <label className="client-picker">
-              <span>Archive view</span>
-              <select
-                aria-label="Archive view"
-                value={selectedYear}
-                onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
-              >
-                {client.surveyYears.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-                <option value="Lifetime">Lifetime</option>
-              </select>
-            </label>
-
-            <button className="ghost-chip signout-chip" onClick={handleSignOut} type="button">
-              Sign out
-            </button>
+            </div>
           </div>
         </section>
 
@@ -598,6 +599,13 @@ export function DeerSurveyApp() {
               <span>{client.acreage} acres</span>
               <span>{yearLabel}</span>
             </div>
+            {viewMode === "admin" ? (
+              <div className="status-group hero-status-group">
+                <span className="status-pill">{client.surveyYears.length} tracked survey years</span>
+                <span className="status-pill">{visibleDocuments.length} documents in view</span>
+                <span className="status-pill accent">{visibleFolders.length} galleries in view</span>
+              </div>
+            ) : null}
           </div>
 
           {viewMode === "admin" ? (
@@ -636,21 +644,6 @@ export function DeerSurveyApp() {
                   </p>
                 </div>
               </div>
-
-              <div className="client-banner quiet">
-                <div>
-                  <h3>{client.propertyName}</h3>
-                  <p>
-                    {client.county} • {client.acreage} acres • {yearLabel}
-                  </p>
-                </div>
-                <div className="status-group">
-                  <span className="status-pill">{client.surveyYears.length} tracked survey years</span>
-                  <span className="status-pill">{visibleDocuments.length} documents in view</span>
-                  <span className="status-pill accent">{visibleFolders.length} galleries in view</span>
-                </div>
-              </div>
-
               <div className="metric-grid">
                 <article className="metric-card">
                   <span>Published reports</span>
