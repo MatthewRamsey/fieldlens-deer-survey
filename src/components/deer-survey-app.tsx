@@ -369,8 +369,6 @@ export function DeerSurveyApp() {
         visibleFolders.filter((folder) => folder.visibility === "admin").length
       : 0;
 
-  const yearLabel = selectedYear === "Lifetime" ? "Lifetime archive" : `${selectedYear} survey year`;
-
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -543,18 +541,25 @@ export function DeerSurveyApp() {
 
             <div className="admin-topbar-body">
               <div className="admin-topbar-copy">
-                <p className="eyebrow">Upland Workspace</p>
                 <h1>{client.propertyName}</h1>
-                <p className="lede">Build annual landowner deliverables, organize buck galleries, and keep draft working files separate from published client records.</p>
+                <p className="lede">Choose a survey year, then manage the published reports and buck galleries prepared for this property.</p>
                 <div className="property-meta">
                   <span>{client.county}</span>
                   <span>{client.acreage} acres</span>
-                  <span>{yearLabel}</span>
-                </div>
-                <div className="status-group hero-status-group">
-                  <span className="status-pill">{client.surveyYears.length} tracked survey years</span>
-                  <span className="status-pill">{visibleDocuments.length} documents in view</span>
-                  <span className="status-pill accent">{visibleFolders.length} galleries in view</span>
+                  <label className="property-meta-select">
+                    <select
+                      aria-label="Archive view"
+                      value={selectedYear}
+                      onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                    >
+                      {client.surveyYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year} survey year
+                        </option>
+                      ))}
+                      <option value="Lifetime">Lifetime archive</option>
+                    </select>
+                  </label>
                 </div>
               </div>
 
@@ -571,22 +576,6 @@ export function DeerSurveyApp() {
                         {entry.name}
                       </option>
                     ))}
-                  </select>
-                </label>
-
-                <label className="client-picker">
-                  <span>Archive view</span>
-                  <select
-                    aria-label="Archive view"
-                    value={selectedYear}
-                    onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
-                  >
-                    {client.surveyYears.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                    <option value="Lifetime">Lifetime</option>
                   </select>
                 </label>
               </div>

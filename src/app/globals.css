@@ -523,13 +523,14 @@ select {
 }
 
 .admin-topbar-copy .lede {
-  max-width: 36ch;
+  max-width: none;
   margin-top: 0;
   font-size: 0.98rem;
 }
 
 .admin-topbar-filters {
-  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  grid-template-columns: minmax(220px, 360px);
+  justify-content: end;
   align-content: start;
 }
 
@@ -622,10 +623,6 @@ select {
 
 .hero-panel {
   padding: 22px;
-}
-
-.hero-status-group {
-  margin-top: 16px;
 }
 
 .eyebrow {
