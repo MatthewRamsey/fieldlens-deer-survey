@@ -522,38 +522,27 @@ export function DeerSurveyApp() {
         Skip to content
       </a>
       <main className="shell" id="main-content">
-        <section className={viewMode === "admin" ? "topbar" : "topbar client-topbar"} aria-label="Workspace controls">
-          <div className="brand-lockup">
-            <div className="brand-mark">
-              <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
-              <p className="eyebrow">{BRAND_NAME} Portal</p>
-            </div>
-            {viewMode === "admin" ? (
+        {viewMode === "admin" ? (
+          <section className="topbar" aria-label="Workspace controls">
+            <div className="brand-lockup">
+              <div className="brand-mark">
+                <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
+                <p className="eyebrow">{BRAND_NAME} Portal</p>
+              </div>
               <h1>Property archive manager</h1>
-            ) : (
-              <div className="client-topbar-copy">
-                <h1>{client.propertyName}</h1>
-                <p className="lede">Choose a survey year, then open the published reports and buck galleries prepared for this property.</p>
-                <div className="property-meta">
-                  <span>{client.county}</span>
-                  <span>{client.acreage} acres</span>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className={viewMode === "admin" ? "topbar-actions" : "topbar-actions client-topbar-actions"}>
-            <div className="session-summary">
-              <span className="status-pill accent">{viewMode === "admin" ? "Admin login" : "Client login"}</span>
-              <div className="session-copy">
-                <strong>{currentUser.name}</strong>
-                <span>{currentUser.email}</span>
-              </div>
-              <button className="ghost-chip signout-chip" onClick={handleSignOut} type="button">
-                Sign out
-              </button>
             </div>
+            <div className="topbar-actions">
+              <div className="session-summary">
+                <span className="status-pill accent">Admin login</span>
+                <div className="session-copy">
+                  <strong>{currentUser.name}</strong>
+                  <span>{currentUser.email}</span>
+                </div>
+                <button className="ghost-chip signout-chip" onClick={handleSignOut} type="button">
+                  Sign out
+                </button>
+              </div>
 
-            {viewMode === "admin" ? (
               <div className="topbar-filters">
                 <label className="client-picker">
                   <span>Active client</span>
@@ -586,27 +575,51 @@ export function DeerSurveyApp() {
                   </select>
                 </label>
               </div>
-            ) : null}
+            </div>
+          </section>
+        ) : (
+          <section className="topbar client-topbar" aria-label="Workspace controls">
+            <div className="client-topbar-header">
+              <div className="brand-mark">
+                <img className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
+                <p className="eyebrow">{BRAND_NAME} Portal</p>
+              </div>
+              <div className="session-summary">
+                <span className="status-pill accent">Client login</span>
+                <div className="session-copy">
+                  <strong>{currentUser.name}</strong>
+                  <span>{currentUser.email}</span>
+                </div>
+                <button className="ghost-chip signout-chip" onClick={handleSignOut} type="button">
+                  Sign out
+                </button>
+              </div>
+            </div>
 
-            {viewMode === "client" ? (
-              <label className="client-picker client-topbar-year-picker">
-                <span>Survey year</span>
-                <select
-                  aria-label="Survey year"
-                  value={selectedYear}
-                  onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
-                >
-                  {client.surveyYears.map((year) => (
-                    <option key={year} value={year}>
-                      {year} survey year
-                    </option>
-                  ))}
-                  <option value="Lifetime">Lifetime archive</option>
-                </select>
-              </label>
-            ) : null}
-          </div>
-        </section>
+            <div className="client-topbar-copy">
+              <h1>{client.propertyName}</h1>
+              <p className="lede">Choose a survey year, then open the published reports and buck galleries prepared for this property.</p>
+              <div className="property-meta">
+                <span>{client.county}</span>
+                <span>{client.acreage} acres</span>
+                <label className="property-meta-select">
+                  <select
+                    aria-label="Survey year"
+                    value={selectedYear}
+                    onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                  >
+                    {client.surveyYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year} survey year
+                      </option>
+                    ))}
+                    <option value="Lifetime">Lifetime archive</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </section>
+        )}
 
         {viewMode === "admin" ? (
           <section className="hero">

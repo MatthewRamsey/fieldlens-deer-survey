@@ -491,27 +491,21 @@ select {
 }
 
 .client-topbar {
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  grid-template-columns: 1fr;
   align-items: start;
+  gap: 18px;
 }
 
-.client-topbar .brand-logo {
+.client-topbar .brand-logo,
+.client-topbar-header .brand-logo {
   width: 72px;
 }
 
-.client-topbar .brand-lockup {
-  align-content: start;
-  gap: 10px;
-}
-
-.client-topbar-actions {
-  grid-template-columns: 1fr;
-  justify-items: end;
-  align-content: start;
-}
-
-.client-topbar-actions .session-summary {
+.client-topbar-header {
+  display: flex;
+  align-items: start;
   justify-content: space-between;
+  gap: 20px;
 }
 
 .client-topbar-copy {
@@ -532,9 +526,18 @@ select {
   font-size: 0.98rem;
 }
 
-.client-topbar-year-picker {
-  width: 100%;
+.property-meta-select {
   min-width: 220px;
+}
+
+.property-meta-select select {
+  min-width: 220px;
+  width: auto;
+  padding: 7px 40px 7px 14px;
+  min-height: 38px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--muted);
 }
 
 .topbar-filters {
