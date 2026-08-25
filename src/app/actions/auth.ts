@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRequestOrigin } from "@/lib/request-origin";
+import { getFriendlyAuthError } from "@/lib/supabase/auth-errors";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthFormState = {
@@ -12,12 +13,6 @@ export type AuthFormState = {
 
 function getField(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
-}
-
-async function getAuthRedirectUrl() {
-  const headerStore = await headers();
-  const origin = headerStore.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  return `${origin}/auth/confirm`;
 }
 
 export async function signIn(_: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -38,7 +33,7 @@ export async function signIn(_: AuthFormState, formData: FormData): Promise<Auth
 
   if (error) {
     return {
-      error: error.message,
+      error: getFriendlyAuthError(error),
     };
   }
 
@@ -65,13 +60,13 @@ export async function signUp(_: AuthFormState, formData: FormData): Promise<Auth
       data: {
         full_name: fullName,
       },
-      emailRedirectTo: await getAuthRedirectUrl(),
+      emailRedirectTo: `${await getRequestOrigin()}/auth/confirm`,
     },
   });
 
   if (error) {
     return {
-      error: error.message,
+      error: getFriendlyAuthError(error),
     };
   }
 

@@ -7,12 +7,13 @@ import { getPortalAppState } from "@/lib/portal-data";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string }>;
+  searchParams: Promise<{ code?: string; next?: string }>;
 }) {
-  const { code } = await searchParams;
+  const { code, next } = await searchParams;
 
   if (code) {
-    redirect(`/auth/confirm?code=${encodeURIComponent(code)}`);
+    const nextQuery = next && next.startsWith("/") ? `&next=${encodeURIComponent(next)}` : "";
+    redirect(`/auth/confirm?code=${encodeURIComponent(code)}${nextQuery}`);
   }
 
   const appState = await getPortalAppState();

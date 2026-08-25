@@ -72,6 +72,7 @@ export type Client = {
   detections: Detection[];
   documents: ClientDocument[];
   buckFolders: BuckFolder[];
+  cameraBatches: [];
 };
 
 export type PortalUser = {
@@ -110,6 +111,7 @@ export const clients: Client[] = [
       { id: "folder-cedar-crabclaw-2025", name: "Crabclaw 2025 gallery", buckName: "Crabclaw", classification: "Management buck", surveyYear: "2025", imageCount: 15, updatedAt: "Aug 6, 2025", source: "Google Drive", visibility: "client", qrEnabled: true, shareUrl: "/cedar-ridge/2025/folders/crabclaw", notes: "Archived 2025 management buck folder." },
       { id: "folder-cedar-broken-brow-2026", name: "Broken Brow review folder", buckName: "Broken Brow", classification: "Management buck", surveyYear: "2026", imageCount: 13, updatedAt: "Aug 4, 2026", source: "Google Drive", visibility: "admin", qrEnabled: false, shareUrl: "/cedar-ridge/2026/folders/broken-brow-review", notes: "Internal 2026 review folder not visible to clients." },
     ],
+    cameraBatches: [],
   },
   {
     id: "long-creek",
@@ -134,6 +136,7 @@ export const clients: Client[] = [
       { id: "folder-long-palmated-2026", name: "Palmated Six 2026 folder", buckName: "Palmated Six", classification: "Management buck", surveyYear: "2026", imageCount: 10, updatedAt: "Aug 6, 2026", source: "SD card", visibility: "client", qrEnabled: true, shareUrl: "/long-creek/2026/folders/palmated-six", notes: "2026 management buck images shared with client." },
       { id: "folder-long-archer-2025", name: "Levee Archer 2025 gallery", buckName: "Levee Archer", classification: "Trophy buck", surveyYear: "2025", imageCount: 12, updatedAt: "Aug 7, 2025", source: "Google Drive", visibility: "client", qrEnabled: true, shareUrl: "/long-creek/2025/folders/levee-archer", notes: "Archived 2025 trophy buck gallery." },
     ],
+    cameraBatches: [],
   },
   {
     id: "pine-hollow",
@@ -157,6 +160,7 @@ export const clients: Client[] = [
       { id: "folder-pine-bottomland-2025", name: "Bottomland Ten 2025 gallery", buckName: "Bottomland Ten", classification: "Trophy buck", surveyYear: "2025", imageCount: 11, updatedAt: "Aug 8, 2025", source: "Google Drive", visibility: "client", qrEnabled: true, shareUrl: "/pine-hollow/2025/folders/bottomland-ten", notes: "Archived 2025 buck gallery." },
       { id: "folder-pine-basket-2026", name: "Basket Eight review folder", buckName: "Basket Eight", classification: "Management buck", surveyYear: "2026", imageCount: 9, updatedAt: "Aug 7, 2026", source: "SD card", visibility: "admin", qrEnabled: false, shareUrl: "/pine-hollow/2026/folders/basket-eight-review", notes: "2026 admin-only review gallery." },
     ],
+    cameraBatches: [],
   },
 ];
 

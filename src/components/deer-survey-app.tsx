@@ -1,38 +1,33 @@
 "use client";
 
 import Image from "next/image";
-import type { ChangeEvent, FormEvent } from "react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import type { BuckFolder, Client, ClientDocument, SurveyYear } from "@/lib/demo-data";
+import { AccountSettings } from "@/components/account-settings";
+import { CameraBatchManager } from "@/components/camera-batch-manager";
+import { DocumentUploadForm } from "@/components/document-upload-form";
 import { signOut } from "@/app/actions/auth";
 import type { ViewerContext } from "@/lib/portal-data";
+import type { CameraBatchImage, Client, SurveyYear } from "@/lib/portal-types";
 
 type ClientPortalView = "reports" | "galleries";
 type YearFilter = SurveyYear | "Lifetime";
-
-type UploadedDocument = ClientDocument & {
-  clientId: string;
-  fileCount: number;
-  uploadSource: "Desktop upload" | "Google Drive";
-};
-
-type UploadedFolder = BuckFolder & {
-  clientId: string;
-  fileNames: string[];
-};
+type AdminBuckBookSort = "age" | "antlers";
 
 const BRAND_NAME = "Upland Wildlife Management";
 const BRAND_LOGO_URL =
   "https://www.uplandwildlifemanagement.com/lovable-uploads/a22bec12-9028-4ae2-aedf-59a70c278b87.png";
 
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+const ageOrder: Record<CameraBatchImage["ageLabel"], number> = {
+  Unknown: 0,
+  Fawn: 1,
+  "1.5 years": 2,
+  "2.5 years": 3,
+  "3.5 years": 4,
+  "4.5 years": 5,
+  "5.5+ years": 6,
+};
 
 function buildDocumentUrl(clientId: string, surveyYear: SurveyYear, documentId: string) {
   return `/${clientId}/${surveyYear}/documents/${documentId}`;
@@ -44,7 +39,9 @@ function QrTile({ value }: { value: string }) {
   useEffect(() => {
     let active = true;
 
-    QRCode.toDataURL(value, {
+    const shareUrl = new URL(value, window.location.origin).toString();
+
+    QRCode.toDataURL(shareUrl, {
       margin: 1,
       color: {
         dark: "#17311b",
@@ -89,25 +86,9 @@ export function DeerSurveyApp({
   const [selectedClientId, setSelectedClientId] = useState(
     viewer.defaultClientId ?? accessibleClients[0]?.id ?? "",
   );
-  const [selectedYear, setSelectedYear] = useState<YearFilter>("2026");
+  const [selectedYear, setSelectedYear] = useState<YearFilter>(accessibleClients[0]?.surveyYears[0] ?? "Lifetime");
   const [clientPortalView, setClientPortalView] = useState<ClientPortalView>("reports");
-  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
-  const [uploadedFolders, setUploadedFolders] = useState<UploadedFolder[]>([]);
-  const [documentCategory, setDocumentCategory] = useState<UploadedDocument["category"]>("Camera survey report");
-  const [documentVisibility, setDocumentVisibility] = useState<UploadedDocument["visibility"]>("client");
-  const [documentSource, setDocumentSource] = useState<UploadedDocument["uploadSource"]>("Desktop upload");
-  const [documentYear, setDocumentYear] = useState<SurveyYear>("2026");
-  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
-  const [documentNote, setDocumentNote] = useState("");
-  const [folderName, setFolderName] = useState("");
-  const [folderBuckName, setFolderBuckName] = useState("");
-  const [folderVisibility, setFolderVisibility] = useState<UploadedFolder["visibility"]>("client");
-  const [folderSource, setFolderSource] = useState<UploadedFolder["source"]>("Manual upload");
-  const [folderClassification, setFolderClassification] = useState<UploadedFolder["classification"]>("Trophy buck");
-  const [folderYear, setFolderYear] = useState<SurveyYear>("2026");
-  const [folderQrEnabled, setFolderQrEnabled] = useState(true);
-  const [folderFiles, setFolderFiles] = useState<File[]>([]);
-  const [folderNote, setFolderNote] = useState("");
+  const [adminBuckBookSort, setAdminBuckBookSort] = useState<AdminBuckBookSort>("age");
 
   const viewMode = viewer.role;
 
@@ -144,21 +125,15 @@ export function DeerSurveyApp({
     );
   }
 
-  const effectiveDocumentYear = client.surveyYears.includes(documentYear)
-    ? documentYear
-    : client.surveyYears[0];
-  const effectiveFolderYear = client.surveyYears.includes(folderYear)
-    ? folderYear
-    : client.surveyYears[0];
   const effectiveSelectedYear =
     selectedYear === "Lifetime" || client.surveyYears.includes(selectedYear)
       ? selectedYear
       : client.surveyYears[0];
+  const effectiveUploadYear =
+    effectiveSelectedYear === "Lifetime" ? client.surveyYears[0] : effectiveSelectedYear;
 
-  const clientUploads = uploadedDocuments.filter((entry) => entry.clientId === client.id);
-  const clientFolders = uploadedFolders.filter((entry) => entry.clientId === client.id);
-  const documents = [...client.documents, ...clientUploads];
-  const folders = [...client.buckFolders, ...clientFolders];
+  const documents = client.documents;
+  const cameraBatches = client.cameraBatches;
 
   const visibleDocuments =
     effectiveSelectedYear === "Lifetime"
@@ -176,112 +151,55 @@ export function DeerSurveyApp({
           return visibleToViewer && document.surveyYear === effectiveSelectedYear;
         });
 
-  const visibleFolders =
-    effectiveSelectedYear === "Lifetime"
-      ? folders.filter((folder) => (viewMode === "admin" ? true : folder.visibility === "client"))
-      : folders.filter((folder) => {
-          const visibleToViewer = viewMode === "admin" ? true : folder.visibility === "client";
-          return visibleToViewer && folder.surveyYear === effectiveSelectedYear;
-        });
-
   const visibleBuckBooks = visibleDocuments.filter((document) => document.category === "Buck book");
-  const qrReadyFolders = visibleFolders.filter((folder) => folder.qrEnabled);
+  const visibleCameraBatches =
+    effectiveSelectedYear === "Lifetime"
+      ? cameraBatches
+      : cameraBatches.filter((batch) => batch.surveyYear === effectiveSelectedYear);
+  const clientReadyImages = visibleCameraBatches.flatMap((batch) =>
+    batch.images
+      .filter((image) => image.clientVisible)
+      .map((image) => ({
+        ...image,
+        cameraName: batch.cameraName,
+        surveyYear: batch.surveyYear,
+      })),
+  );
+  const compareBuckBookImages = (left: (typeof clientReadyImages)[number], right: (typeof clientReadyImages)[number]) => {
+    if (adminBuckBookSort === "antlers") {
+      const antlerDifference = (right.antlerPoints ?? -1) - (left.antlerPoints ?? -1);
+      if (antlerDifference !== 0) {
+        return antlerDifference;
+      }
+    } else {
+      const ageDifference = ageOrder[right.ageLabel] - ageOrder[left.ageLabel];
+      if (ageDifference !== 0) {
+        return ageDifference;
+      }
+    }
+
+    return left.fileName.localeCompare(right.fileName);
+  };
+  const groupedClientReadyImages = {
+    Trophy: clientReadyImages
+      .filter((image) => image.deerClassification === "Trophy")
+      .sort(compareBuckBookImages),
+    Management: clientReadyImages
+      .filter((image) => image.deerClassification === "Management")
+      .sort(compareBuckBookImages),
+    Unsorted: clientReadyImages
+      .filter((image) => image.deerClassification === "Unsorted")
+      .sort(compareBuckBookImages),
+  };
   const publishedReportCount = visibleDocuments.filter((document) => document.status === "Published").length;
-  const sharedGalleryCount = visibleFolders.filter((folder) => folder.visibility === "client").length;
-  const totalSharedImages = visibleFolders.reduce((total, folder) => total + folder.imageCount, 0);
-  const adminDraftCount =
-    viewMode === "admin"
-      ? visibleDocuments.filter((document) => document.status === "Draft").length +
-        visibleFolders.filter((folder) => folder.visibility === "admin").length
-      : 0;
+  const publishedBuckBookImages = [
+    ...groupedClientReadyImages.Trophy,
+    ...groupedClientReadyImages.Management,
+  ];
+  const buckBookShareUrl =
+    effectiveSelectedYear === "Lifetime" ? null : `/${client.id}/${effectiveSelectedYear}/buck-book`;
   const yearLabel =
     effectiveSelectedYear === "Lifetime" ? "Lifetime archive" : `${effectiveSelectedYear} survey year`;
-
-  function handleFileSelection(setter: (files: File[]) => void) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
-      setter(Array.from(event.target.files ?? []));
-    };
-  }
-
-  function handleDocumentUpload(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (documentFiles.length === 0) {
-      return;
-    }
-
-    const uploadDate = new Date().toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-
-    const entries = documentFiles.map((file, index) => ({
-      id: `uploaded-doc-${client.id}-${Date.now()}-${index}`,
-      clientId: client.id,
-      title: file.name.replace(/\.[^.]+$/, ""),
-      category: documentCategory,
-      surveyYear: effectiveDocumentYear,
-      uploadedAt: uploadDate,
-      fileType: file.name.toLowerCase().endsWith(".docx")
-        ? "DOCX"
-        : file.name.toLowerCase().endsWith(".zip")
-          ? "ZIP"
-          : "PDF",
-      visibility: documentVisibility,
-      status: documentVisibility === "client" ? "Published" : "Draft",
-      notes: documentNote || `Uploaded into the ${effectiveDocumentYear} property archive.`,
-      fileCount: 1,
-      uploadSource: documentSource,
-    } satisfies UploadedDocument));
-
-    setUploadedDocuments((current) => [...entries, ...current]);
-    setDocumentFiles([]);
-    setDocumentNote("");
-  }
-
-  function handleFolderUpload(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (folderFiles.length === 0 || folderName.trim() === "" || folderBuckName.trim() === "") {
-      return;
-    }
-
-    const uploadDate = new Date().toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    const folderPath = `/${client.id}/${effectiveFolderYear}/folders/${slugify(folderName)}`;
-
-    const nextFolder: UploadedFolder = {
-      id: `uploaded-folder-${client.id}-${Date.now()}`,
-      clientId: client.id,
-      name: folderName.trim(),
-      buckName: folderBuckName.trim(),
-      classification: folderClassification,
-      surveyYear: effectiveFolderYear,
-      imageCount: folderFiles.length,
-      updatedAt: uploadDate,
-      source: folderSource,
-      visibility: folderVisibility,
-      qrEnabled: folderQrEnabled,
-      shareUrl:
-        typeof window === "undefined" ? folderPath : new URL(folderPath, window.location.origin).toString(),
-      notes: folderNote || `Digital gallery added to the ${effectiveFolderYear} archive.`,
-      fileNames: folderFiles.map((file) => file.name),
-    };
-
-    setUploadedFolders((current) => [nextFolder, ...current]);
-    setFolderName("");
-    setFolderBuckName("");
-    setFolderFiles([]);
-    setFolderNote("");
-    setFolderQrEnabled(true);
-    setFolderVisibility("client");
-    setFolderSource("Manual upload");
-    setFolderClassification("Trophy buck");
-  }
 
   return (
     <>
@@ -289,111 +207,77 @@ export function DeerSurveyApp({
         Skip to content
       </a>
       <main className="shell" id="main-content">
-        <section className="topbar" aria-label="Workspace controls">
-          <div className="brand-lockup">
-            <div className="brand-mark">
-              <Image className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
-              <p className="eyebrow">{BRAND_NAME}</p>
-            </div>
-            <h1>{viewMode === "admin" ? "Property archive manager" : "Landowner camera survey portal"}</h1>
-          </div>
-          <div className="topbar-actions">
-            <div className="session-summary">
-              <span className="status-pill accent">{viewMode === "admin" ? "Admin profile" : "Client profile"}</span>
-              <div className="session-copy">
-                <strong>{viewer.fullName}</strong>
-                <span>{viewer.email}</span>
-              </div>
-            </div>
-
-            {viewMode === "admin" ? (
-              <label className="client-picker">
-                <span>Active client</span>
-                <select
-                  aria-label="Active client"
-                  value={selectedClientId}
-                  onChange={(event) => setSelectedClientId(event.target.value)}
-                >
-                  {accessibleClients.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              <div className="client-picker readonly-picker">
-                <span>Assigned client</span>
-                <div className="readonly-value">{client.name}</div>
-              </div>
-            )}
-
-            <label className="client-picker">
-              <span>Archive view</span>
-              <select
-                aria-label="Archive view"
-                value={effectiveSelectedYear}
-                onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
-              >
-                {client.surveyYears.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-                <option value="Lifetime">Lifetime</option>
-              </select>
-            </label>
-
-            <form action={signOut}>
-              <button className="ghost-chip signout-chip" type="submit">
-                Sign out
-              </button>
-            </form>
-          </div>
-        </section>
-
-        <section className="hero">
-          <div className="hero-copy">
-            <p className="eyebrow">{viewMode === "admin" ? "Upland Workspace" : "Property Archive"}</p>
-            <h2>{client.propertyName}</h2>
-            <p className="lede">
-              {viewMode === "admin"
-                ? "Build annual landowner deliverables, organize buck galleries, and keep draft working files separate from published client records."
-                : "Choose a survey year, then open the published reports and buck galleries prepared for this property."}
-            </p>
-            <div className="property-meta">
-              <span>{client.county}</span>
-              <span>{client.acreage} acres</span>
-              <span>{yearLabel}</span>
-            </div>
-          </div>
-
-          {viewMode === "admin" ? (
-            <div className="hero-panel">
-              <span className="panel-title">At a glance</span>
-              <div className="metric-grid compact split">
-                <article className="metric-card">
-                  <span>Reports</span>
-                  <strong>{publishedReportCount}</strong>
-                  <p>Survey reports, buck books, and supporting documents in this archive view.</p>
-                </article>
-                <article className="metric-card">
-                  <span>Galleries</span>
-                  <strong>{sharedGalleryCount}</strong>
-                  <p>Digital buck galleries currently available for this property-year selection.</p>
-                </article>
-                <article className="metric-card">
-                  <span>Draft assets</span>
-                  <strong>{adminDraftCount}</strong>
-                  <p>Admin-only reports and galleries held back from the client view.</p>
-                </article>
-              </div>
-            </div>
-          ) : null}
-        </section>
-
         {viewMode === "admin" ? (
           <>
+            <section className="topbar admin-topbar" aria-label="Workspace controls">
+              <div className="admin-topbar-header">
+                <div className="brand-mark">
+                  <Image className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
+                  <p className="eyebrow">{BRAND_NAME} Portal</p>
+                </div>
+                <div className="session-summary">
+                  <span className="status-pill accent">Admin login</span>
+                  <div className="session-copy">
+                    <strong>{viewer.fullName}</strong>
+                    <span>{viewer.email}</span>
+                  </div>
+                  <Link className="ghost-chip signout-chip" href="/account">
+                    Account
+                  </Link>
+                  <form action={signOut}>
+                    <button className="ghost-chip signout-chip" type="submit">
+                      Sign out
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <div className="admin-topbar-body">
+                <div className="admin-topbar-copy">
+                  <h1>{client.propertyName}</h1>
+                  <p className="lede">Choose a survey year, then manage the published reports, camera batches, and client-ready deer images prepared for this property.</p>
+                  <div className="property-meta">
+                    <span>{client.county}</span>
+                    <span>{client.acreage} acres</span>
+                    <span>{yearLabel}</span>
+                  </div>
+                </div>
+
+                <div className="topbar-filters admin-topbar-filters">
+                  <label className="client-picker">
+                    <span>Active client</span>
+                    <select
+                      aria-label="Active client"
+                      value={selectedClientId}
+                      onChange={(event) => setSelectedClientId(event.target.value)}
+                    >
+                      {accessibleClients.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="client-picker">
+                    <span>Survey year</span>
+                    <select
+                      aria-label="Archive view"
+                      value={effectiveSelectedYear}
+                      onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                    >
+                      {client.surveyYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year} survey year
+                        </option>
+                      ))}
+                      <option value="Lifetime">Lifetime archive</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </section>
+
             <section className="workspace-card">
               <div className="workspace-top">
                 <div>
@@ -415,7 +299,7 @@ export function DeerSurveyApp({
                 <div className="status-group">
                   <span className="status-pill">{client.surveyYears.length} tracked survey years</span>
                   <span className="status-pill">{visibleDocuments.length} documents in view</span>
-                  <span className="status-pill accent">{visibleFolders.length} galleries in view</span>
+                  <span className="status-pill accent">{visibleCameraBatches.length} camera batches in view</span>
                 </div>
               </div>
 
@@ -431,21 +315,18 @@ export function DeerSurveyApp({
                   <p>Printable or digital buck books available in the current archive view.</p>
                 </article>
                 <article className="metric-card">
-                  <span>QR galleries</span>
-                  <strong>{qrReadyFolders.length}</strong>
-                  <p>Galleries with QR-ready links for printed report pages and field use.</p>
+                  <span>Camera batches</span>
+                  <strong>{visibleCameraBatches.length}</strong>
+                  <p>Per-camera image pulls available for review in the selected archive view.</p>
                 </article>
                 <article className="metric-card">
-                  <span>Admin-only assets</span>
-                  <strong>
-                    {visibleDocuments.filter((document) => document.visibility === "admin").length +
-                      visibleFolders.filter((folder) => folder.visibility === "admin").length}
-                  </strong>
-                  <p>Draft or private assets still hidden from client users.</p>
+                  <span>Client-ready deer images</span>
+                  <strong>{clientReadyImages.length}</strong>
+                  <p>Images already marked visible for the client buck book and gallery experience.</p>
                 </article>
               </div>
 
-              <div className="content-grid admin-grid">
+              <div className="content-grid admin-grid admin-grid-single">
                 <section className="panel">
                   <div className="panel-header">
                     <div>
@@ -454,149 +335,9 @@ export function DeerSurveyApp({
                     </div>
                   </div>
 
-                  <form className="upload-form" onSubmit={handleDocumentUpload}>
-                    <div className="form-grid">
-                      <label className="auth-field">
-                        <span>Document category</span>
-                        <select value={documentCategory} onChange={(event) => setDocumentCategory(event.target.value as UploadedDocument["category"])}>
-                          <option>Camera survey report</option>
-                          <option>Buck book</option>
-                          <option>Map export</option>
-                          <option>Harvest plan</option>
-                        </select>
-                      </label>
-                      <label className="auth-field">
-                        <span>Survey year</span>
-                        <select value={effectiveDocumentYear} onChange={(event) => setDocumentYear(event.target.value as SurveyYear)}>
-                          {client.surveyYears.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="auth-field">
-                        <span>Visibility</span>
-                        <select value={documentVisibility} onChange={(event) => setDocumentVisibility(event.target.value as UploadedDocument["visibility"])}>
-                          <option value="client">Publish to client</option>
-                          <option value="admin">Keep admin only</option>
-                        </select>
-                      </label>
-                      <label className="auth-field">
-                        <span>Upload source</span>
-                        <select value={documentSource} onChange={(event) => setDocumentSource(event.target.value as UploadedDocument["uploadSource"])}>
-                          <option value="Desktop upload">Desktop upload</option>
-                          <option value="Google Drive">Google Drive</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <label className="auth-field">
-                      <span>Files</span>
-                      <input multiple type="file" accept=".pdf,.docx,.zip" onChange={handleFileSelection(setDocumentFiles)} />
-                    </label>
-
-                    <label className="auth-field">
-                      <span>Notes</span>
-                      <textarea
-                        rows={3}
-                        value={documentNote}
-                        onChange={(event) => setDocumentNote(event.target.value)}
-                        placeholder="Add release notes, report version context, or publishing details."
-                      />
-                    </label>
-
-                    <div className="upload-summary">
-                      <span>{documentFiles.length} file(s) selected for {effectiveDocumentYear}</span>
-                      <button className="primary-chip submit-chip" type="submit">
-                        Add report upload
-                      </button>
-                    </div>
-                  </form>
+                  <DocumentUploadForm client={client} selectedYear={effectiveUploadYear} />
                 </section>
 
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <p className="eyebrow">Gallery builder</p>
-                      <h3>Create a buck gallery for a specific year</h3>
-                    </div>
-                  </div>
-
-                  <form className="upload-form" onSubmit={handleFolderUpload}>
-                    <div className="form-grid">
-                      <label className="auth-field">
-                        <span>Folder name</span>
-                        <input value={folderName} onChange={(event) => setFolderName(event.target.value)} placeholder="Wide Ten late-summer gallery" />
-                      </label>
-                      <label className="auth-field">
-                        <span>Buck name</span>
-                        <input value={folderBuckName} onChange={(event) => setFolderBuckName(event.target.value)} placeholder="Wide Ten" />
-                      </label>
-                      <label className="auth-field">
-                        <span>Survey year</span>
-                        <select value={effectiveFolderYear} onChange={(event) => setFolderYear(event.target.value as SurveyYear)}>
-                          {client.surveyYears.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="auth-field">
-                        <span>Classification</span>
-                        <select value={folderClassification} onChange={(event) => setFolderClassification(event.target.value as UploadedFolder["classification"])}>
-                          <option value="Trophy buck">Trophy buck</option>
-                          <option value="Management buck">Management buck</option>
-                        </select>
-                      </label>
-                      <label className="auth-field">
-                        <span>Folder source</span>
-                        <select value={folderSource} onChange={(event) => setFolderSource(event.target.value as UploadedFolder["source"])}>
-                          <option value="Manual upload">Direct upload</option>
-                          <option value="SD card">SD card</option>
-                          <option value="Google Drive">Google Drive</option>
-                        </select>
-                      </label>
-                      <label className="auth-field">
-                        <span>Visibility</span>
-                        <select value={folderVisibility} onChange={(event) => setFolderVisibility(event.target.value as UploadedFolder["visibility"])}>
-                          <option value="client">Share with client</option>
-                          <option value="admin">Keep admin only</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <label className="auth-field">
-                      <span>Gallery images</span>
-                      <input multiple type="file" accept="image/*" onChange={handleFileSelection(setFolderFiles)} />
-                    </label>
-
-                    <label className="checkbox-row">
-                      <input checked={folderQrEnabled} type="checkbox" onChange={(event) => setFolderQrEnabled(event.target.checked)} />
-                      <span>Generate a QR-ready gallery link for this folder</span>
-                    </label>
-
-                    <label className="auth-field">
-                      <span>Notes</span>
-                      <textarea
-                        rows={3}
-                        value={folderNote}
-                        onChange={(event) => setFolderNote(event.target.value)}
-                        placeholder="Add publishing notes or context for this year’s digital gallery."
-                      />
-                    </label>
-
-                    <div className="upload-summary">
-                      <span>{folderFiles.length} image(s) selected for {effectiveFolderYear}</span>
-                      <div className="summary-actions">
-                        <button className="primary-chip submit-chip" type="submit">
-                          Create gallery folder
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                </section>
                 <section className="panel">
                   <div className="panel-header">
                     <div>
@@ -650,182 +391,324 @@ export function DeerSurveyApp({
             </section>
 
             <section className="workspace-card book-section">
+              <CameraBatchManager client={client} selectedYear={effectiveSelectedYear} />
+            </section>
+
+            <section className="workspace-card book-section">
               <div className="workspace-top">
                 <div>
-                  <p className="eyebrow">Digital buck gallery</p>
-                  <h2>QR-linked galleries for the selected year or lifetime archive</h2>
+                  <p className="eyebrow">Client-ready buck book preview</p>
+                  <h2>Group visible deer images by management or trophy and sort the order before client release</h2>
                   <p className="section-copy">
-                    Each gallery stays tied to its survey year so Upland can support both printed buck books and mobile follow-up viewing.
+                    This is the same deer-image structure the client sees. Only management and trophy images are released; unclassified images stay in this review workspace.
                   </p>
                 </div>
                 <div className="book-callout">
-                  <strong>{visibleFolders.length}</strong>
-                  <span>{visibleBuckBooks.length} buck books</span>
-                  <span>{qrReadyFolders.length} QR-ready galleries</span>
+                  <strong>{clientReadyImages.length}</strong>
+                  <span>{groupedClientReadyImages.Trophy.length} trophy images</span>
+                  <span>{groupedClientReadyImages.Management.length} management images</span>
                 </div>
               </div>
 
-              <div className="book-grid">
-                {visibleFolders.length ? (
-                  visibleFolders.map((folder) => (
-                    <article className="book-card" key={folder.id}>
-                      <div className="book-image">
-                        <span>{folder.buckName.slice(0, 2).toUpperCase()}</span>
+              <div className="buck-book-toolbar">
+                <label className="client-picker buck-book-sorter">
+                  <span>Sort client-ready images</span>
+                  <select
+                    aria-label="Sort client-ready deer images"
+                    value={adminBuckBookSort}
+                    onChange={(event) => setAdminBuckBookSort(event.target.value as AdminBuckBookSort)}
+                  >
+                    <option value="age">By age</option>
+                    <option value="antlers">By antler count</option>
+                  </select>
+                </label>
+                {buckBookShareUrl ? (
+                  <div className="buck-book-share">
+                    <QrTile value={buckBookShareUrl} />
+                    <a className="ghost-chip action-chip" href={buckBookShareUrl} target="_blank" rel="noreferrer">
+                      Open client buck book
+                    </a>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="buck-book-preview-grid">
+                {(["Trophy", "Management", "Unsorted"] as const).map((group) => {
+                  const images = groupedClientReadyImages[group];
+                  const labelClass =
+                    group === "Trophy" ? "trophy" : group === "Management" ? "management" : "neutral";
+
+                  return (
+                    <section className="panel buck-book-preview-panel" key={group}>
+                      <div className="panel-header">
+                        <div>
+                          <p className="eyebrow">Client grouping</p>
+                          <h3>{group === "Unsorted" ? "Needs classification" : `${group} deer`}</h3>
+                        </div>
+                        <span className={`label-chip ${labelClass}`}>{images.length} images</span>
                       </div>
-                      <div className="book-copy">
-                        <div className="book-title">
-                          <div>
-                            <h3>{folder.buckName}</h3>
-                            <p>{folder.surveyYear} gallery archive</p>
-                          </div>
-                          <span className={`label-chip ${folder.classification === "Trophy buck" ? "trophy" : "management"}`}>
-                            {folder.classification}
-                          </span>
+
+                      {images.length ? (
+                        <div className="buck-book-card-grid">
+                          {images.map((image) => (
+                            <article className="buck-book-image-card" key={image.id}>
+                              <div className="buck-book-image-frame">
+                                <Image
+                                  alt={image.fileName}
+                                  className="buck-book-image"
+                                  height={220}
+                                  src={image.url}
+                                  unoptimized
+                                  width={320}
+                                />
+                              </div>
+                              <div className="buck-book-image-copy">
+                                <div className="asset-top">
+                                  <strong>{image.fileName}</strong>
+                                  <span className={`label-chip ${labelClass}`}>{group}</span>
+                                </div>
+                                <div className="book-meta">
+                                  <span>{image.cameraName}</span>
+                                  <span>{image.surveyYear}</span>
+                                  <span>{image.ageLabel}</span>
+                                  <span>{image.antlerPoints !== null ? `${image.antlerPoints} points` : "No antler count"}</span>
+                                  <span>{image.lifeStatus}</span>
+                                </div>
+                              </div>
+                            </article>
+                          ))}
                         </div>
-                        <p>{folder.notes}</p>
-                        <div className="book-meta">
-                          <span>{folder.imageCount} linked images</span>
-                          <span>{folder.source}</span>
-                          <span>{folder.name}</span>
-                        </div>
-                        <div className="asset-actions">
-                          <a className="primary-chip action-chip" href={folder.shareUrl} rel="noreferrer" target="_blank">
-                            Open gallery
-                          </a>
-                        </div>
-                      </div>
-                      {folder.qrEnabled ? <QrTile value={folder.shareUrl} /> : <div className="qr-placeholder" aria-hidden="true" />}
-                    </article>
-                  ))
-                ) : (
-                  <article className="empty-state">
-                    <h3>No QR-linked galleries in this view</h3>
-                    <p>Choose another year or lifetime to browse buck folders that are ready to share.</p>
-                  </article>
-                )}
+                      ) : (
+                        <article className="empty-state">
+                          <h3>No images in this group yet</h3>
+                          <p>
+                            {group === "Unsorted"
+                              ? "Images marked client visible still need a management or trophy classification."
+                              : `Tag deer images as ${group.toLowerCase()} and mark them client visible to build this section.`}
+                          </p>
+                        </article>
+                      )}
+                    </section>
+                  );
+                })}
               </div>
             </section>
           </>
         ) : (
-          <section className="workspace-card client-portal-card">
-            <div className="workspace-top">
-              <div>
-                <p className="eyebrow">Published archive</p>
-                <h2>Reports and buck galleries for {yearLabel.toLowerCase()}</h2>
-                <p className="section-copy">
-                  Open the published material prepared for this property. Lifetime combines every released survey year in one archive.
-                </p>
+          <>
+            <section className="topbar client-topbar" aria-label="Workspace controls">
+              <div className="client-topbar-header">
+                <div className="brand-mark">
+                  <Image className="brand-logo" src={BRAND_LOGO_URL} alt={`${BRAND_NAME} logo`} width={164} height={42} />
+                  <p className="eyebrow">{BRAND_NAME} Portal</p>
+                </div>
+                <div className="session-summary">
+                  <span className="status-pill accent">Client login</span>
+                  <div className="session-copy">
+                    <strong>{viewer.fullName}</strong>
+                    <span>{viewer.email}</span>
+                  </div>
+                  <Link className="ghost-chip signout-chip" href="/account">
+                    Account
+                  </Link>
+                  <form action={signOut}>
+                    <button className="ghost-chip signout-chip" type="submit">
+                      Sign out
+                    </button>
+                  </form>
+                </div>
               </div>
-              <div className="client-summary">
-                <strong>
-                  {publishedReportCount} report{publishedReportCount === 1 ? "" : "s"} and {sharedGalleryCount} galler{sharedGalleryCount === 1 ? "y" : "ies"}
-                </strong>
-                <span>{totalSharedImages.toLocaleString()} shared images in this view</span>
-              </div>
-            </div>
 
-            <div className="portal-switcher" role="tablist" aria-label="Client archive section">
-              <button
-                aria-selected={clientPortalView === "reports"}
-                className={clientPortalView === "reports" ? "primary-chip active" : "ghost-chip"}
-                onClick={() => setClientPortalView("reports")}
-                role="tab"
-                type="button"
-              >
-                Reports
-              </button>
-              <button
-                aria-selected={clientPortalView === "galleries"}
-                className={clientPortalView === "galleries" ? "primary-chip active" : "ghost-chip"}
-                onClick={() => setClientPortalView("galleries")}
-                role="tab"
-                type="button"
-              >
-                Buck galleries
-              </button>
-            </div>
+              <div className="client-topbar-body">
+                <div className="client-topbar-copy">
+                  <h1>{client.propertyName}</h1>
+                  <p className="lede">Choose a survey year, then open the published reports and deer images prepared for this property.</p>
+                  <div className="property-meta">
+                    <span>{client.county}</span>
+                    <span>{client.acreage} acres</span>
+                    <span>{yearLabel}</span>
+                  </div>
+                </div>
 
-            {clientPortalView === "reports" ? (
-              <div className="asset-list">
-                {visibleDocuments.length ? (
-                  visibleDocuments.map((document) => (
-                    <article className="asset-card" key={document.id}>
-                      <div className="asset-top">
-                        <div>
-                          <h3>{document.title}</h3>
-                          <p>
-                            {document.surveyYear} • {document.category} • {document.fileType}
-                            {document.pageCount ? ` • ${document.pageCount} pages` : ""}
-                          </p>
-                        </div>
-                        <span className="label-chip doe">{document.status}</span>
-                      </div>
-                      <p>{document.notes}</p>
-                      <div className="asset-meta">
-                        <span>{document.uploadedAt}</span>
-                        <span>{client.propertyName}</span>
-                      </div>
-                      <div className="asset-actions">
-                        <a
-                          className="primary-chip action-chip"
-                          href={buildDocumentUrl(client.id, document.surveyYear, document.id)}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          Open report
-                        </a>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <article className="empty-state">
-                    <h3>No published reports in this view</h3>
-                    <p>Switch to another survey year or wait for Upland to publish the next release.</p>
-                  </article>
-                )}
+                <div className="topbar-filters client-topbar-filters">
+                  <div className="client-picker readonly-picker">
+                    <span>Assigned client</span>
+                    <div className="readonly-value">{client.name}</div>
+                  </div>
+
+                  <label className="client-picker">
+                    <span>Survey year</span>
+                    <select
+                      aria-label="Archive view"
+                      value={effectiveSelectedYear}
+                      onChange={(event) => setSelectedYear(event.target.value as YearFilter)}
+                    >
+                      {client.surveyYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year} survey year
+                        </option>
+                      ))}
+                      <option value="Lifetime">Lifetime archive</option>
+                    </select>
+                  </label>
+                </div>
               </div>
-            ) : (
-              <div className="book-grid">
-                {visibleFolders.length ? (
-                  visibleFolders.map((folder) => (
-                    <article className="book-card" key={folder.id}>
-                      <div className="book-image">
-                        <span>{folder.buckName.slice(0, 2).toUpperCase()}</span>
-                      </div>
-                      <div className="book-copy">
-                        <div className="book-title">
-                          <div>
-                            <h3>{folder.buckName}</h3>
-                            <p>{folder.surveyYear} gallery archive</p>
+            </section>
+
+            <section className="workspace-card client-portal-card">
+              <div className="workspace-top">
+                <div>
+                  <p className="eyebrow">Published archive</p>
+                  <h2>Reports and buck book for {yearLabel.toLowerCase()}</h2>
+                  <p className="section-copy">
+                    Open the published material prepared for this property. Lifetime combines every released survey year in one archive.
+                  </p>
+                </div>
+                <div className="client-summary">
+                  <strong>
+                    {publishedReportCount} report{publishedReportCount === 1 ? "" : "s"} and {publishedBuckBookImages.length} deer image{publishedBuckBookImages.length === 1 ? "" : "s"}
+                  </strong>
+                  <span>Grouped by management and trophy</span>
+                </div>
+              </div>
+
+              <div className="portal-switcher" role="tablist" aria-label="Client archive section">
+                <button
+                  aria-selected={clientPortalView === "reports"}
+                  className={clientPortalView === "reports" ? "primary-chip active" : "ghost-chip"}
+                  onClick={() => setClientPortalView("reports")}
+                  role="tab"
+                  type="button"
+                >
+                  Reports
+                </button>
+                <button
+                  aria-selected={clientPortalView === "galleries"}
+                  className={clientPortalView === "galleries" ? "primary-chip active" : "ghost-chip"}
+                  onClick={() => setClientPortalView("galleries")}
+                  role="tab"
+                  type="button"
+                >
+                  Digital buck book
+                </button>
+              </div>
+
+              {clientPortalView === "reports" ? (
+                <section className="panel">
+                  <div className="panel-header">
+                    <div>
+                      <p className="eyebrow">Property reports</p>
+                      <h3>Published reports</h3>
+                    </div>
+                  </div>
+
+                  <div className="asset-list">
+                    {visibleDocuments.length ? (
+                      visibleDocuments.map((document) => (
+                        <article className="asset-card" key={document.id}>
+                          <div className="asset-top">
+                            <div>
+                              <h4>{document.title}</h4>
+                              <p>
+                                {document.surveyYear} • {document.category} • {document.fileType}
+                                {document.pageCount ? ` • ${document.pageCount} pages` : ""}
+                              </p>
+                            </div>
+                            <span className="label-chip doe">{document.status}</span>
                           </div>
-                          <span className={`label-chip ${folder.classification === "Trophy buck" ? "trophy" : "management"}`}>
-                            {folder.classification}
-                          </span>
-                        </div>
-                        <p>{folder.notes}</p>
-                        <div className="book-meta">
-                          <span>{folder.imageCount} linked images</span>
-                          <span>{folder.source}</span>
-                          <span>{folder.name}</span>
-                        </div>
-                        <div className="asset-actions">
-                          <a className="primary-chip action-chip" href={folder.shareUrl} rel="noreferrer" target="_blank">
-                            Open gallery
-                          </a>
-                        </div>
-                      </div>
-                      {folder.qrEnabled ? <QrTile value={folder.shareUrl} /> : <div className="qr-placeholder" aria-hidden="true" />}
-                    </article>
-                  ))
-                ) : (
-                  <article className="empty-state">
-                    <h3>No published galleries in this view</h3>
-                    <p>Choose another year or wait for Upland to publish the next gallery set.</p>
-                  </article>
-                )}
+                          <p>{document.notes}</p>
+                          <div className="asset-meta">
+                            <span>{document.uploadedAt}</span>
+                            <span>{document.surveyYear}</span>
+                          </div>
+                          <div className="asset-actions">
+                            <a
+                              className="primary-chip action-chip"
+                              href={buildDocumentUrl(client.id, document.surveyYear, document.id)}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              Open report
+                            </a>
+                          </div>
+                        </article>
+                      ))
+                    ) : (
+                      <article className="empty-state">
+                        <h4>No published reports in this view</h4>
+                        <p>Switch to another survey year or lifetime to browse more property documents.</p>
+                      </article>
+                    )}
+                  </div>
+                </section>
+              ) : (
+                <section className="panel">
+                  <div className="panel-header">
+                    <div>
+                      <p className="eyebrow">Digital buck book</p>
+                      <h3>Management and trophy deer</h3>
+                    </div>
+                  </div>
+
+                  <div className="buck-book-preview-grid client-buck-book-grid">
+                    {(["Trophy", "Management"] as const).map((group) => {
+                      const images = groupedClientReadyImages[group];
+                      const labelClass = group === "Trophy" ? "trophy" : "management";
+
+                      return (
+                        <section className="buck-book-client-panel" key={group}>
+                          <div className="panel-header">
+                            <div>
+                              <p className="eyebrow">{group} deer</p>
+                              <h4>{images.length} client-ready image{images.length === 1 ? "" : "s"}</h4>
+                            </div>
+                            <span className={`label-chip ${labelClass}`}>{group}</span>
+                          </div>
+                          <div className="buck-book-card-grid">
+                            {images.map((image) => (
+                              <a
+                                className="buck-book-image-card client-buck-book-image-card"
+                                href={buckBookShareUrl ?? "#"}
+                                key={image.id}
+                                target={buckBookShareUrl ? "_blank" : undefined}
+                              >
+                                <div className="buck-book-image-frame">
+                                  <Image alt={image.fileName} className="buck-book-image" height={220} src={image.url} unoptimized width={320} />
+                                </div>
+                                <div className="buck-book-image-copy">
+                                  <strong>{image.ageLabel}</strong>
+                                  <div className="book-meta">
+                                    <span>{image.antlerPoints !== null ? `${image.antlerPoints} points` : "Antler count not listed"}</span>
+                                    <span>{image.lifeStatus}</span>
+                                  </div>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        </section>
+                      );
+                    })}
+                    {publishedBuckBookImages.length === 0 ? (
+                      <article className="empty-state">
+                        <h4>No deer images have been released yet</h4>
+                        <p>Your wildlife manager will add reviewed management and trophy deer images here.</p>
+                      </article>
+                    ) : null}
+                  </div>
+                </section>
+              )}
+            </section>
+            <section className="client-details-card">
+              <p className="eyebrow">Property details</p>
+              <div className="status-group">
+                <span className="status-pill">{client.county}</span>
+                <span className="status-pill">{client.acreage} acres</span>
+                <span className="status-pill">{client.surveyYears.length} tracked years</span>
+                <span className="status-pill accent">{visibleBuckBooks.length} buck books available</span>
               </div>
-            )}
-          </section>
+            </section>
+            <AccountSettings accessibleClients={accessibleClients} viewer={viewer} />
+          </>
         )}
       </main>
     </>
