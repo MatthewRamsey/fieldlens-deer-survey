@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import type { PortalExploration } from "@/lib/portal-explorations";
 import { portalExplorations } from "@/lib/portal-explorations";
@@ -63,7 +65,7 @@ function SignInCard({
       <form className={styles.form}>
         <label className={styles.field}>
           <span>Email</span>
-          <input
+          <Input
             autoComplete="username"
             defaultValue={demo.email}
             name={`${accent}-email`}
@@ -74,7 +76,7 @@ function SignInCard({
         </label>
         <label className={styles.field}>
           <span>Password</span>
-          <input
+          <Input
             autoComplete="current-password"
             defaultValue=""
             name={`${accent}-password`}
@@ -82,9 +84,9 @@ function SignInCard({
             type="password"
           />
         </label>
-        <button className={styles.submit} type="submit">
+        <Button className={styles.submit} type="submit">
           {accent === "admin" ? "Open Admin Workspace" : "Sign In to Client Portal"}
-        </button>
+        </Button>
       </form>
 
       <div className={styles.credentials}>
@@ -176,7 +178,7 @@ function CenteredPortalCard() {
         <div className={styles.pills}>
           <span className={styles.pill}>Year-based archives</span>
           <span className={styles.pill}>Client-safe publishing</span>
-          <span className={styles.pill}>QR-ready galleries</span>
+          <span className={styles.pill}>QR-ready buck pages</span>
         </div>
         <SignInCard />
       </div>
@@ -247,9 +249,9 @@ function DashboardPreviewPortal() {
           </article>
           <article className={styles.previewCard}>
             <h3>Digital Buck Books</h3>
-            <p className={styles.lede}>Curated galleries that mirror printed books and field handouts.</p>
+            <p className={styles.lede}>A Digital Buck Book pairs each printed buck page with more photos online.</p>
             <div className={styles.stats}>
-              <span className={styles.stat}>QR-linked galleries</span>
+              <span className={styles.stat}>Buck-specific QR links</span>
               <span className={styles.stat}>Published folders</span>
             </div>
           </article>
@@ -378,7 +380,7 @@ function PropertyArchiveTheme() {
           </article>
           <article className={styles.archiveCard}>
             <h3>Buck Book Library</h3>
-            <p className={styles.lede}>Published books and digital galleries aligned to the landowner delivery package.</p>
+            <p className={styles.lede}>Published Digital Buck Books aligned to the landowner delivery package.</p>
           </article>
           <article className={styles.archiveCard}>
             <h3>Release Status</h3>

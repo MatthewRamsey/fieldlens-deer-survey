@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Supabase CLI cache
+supabase/.temp/
+
+# Private, local pre-cutover exports
+/backups/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -77,7 +77,7 @@ export const portalExplorations: PortalExploration[] = [
     shortTitle: "Archive Theme",
     title: "Property Archive Theme",
     description: "An archive-inspired entry page with record chips, property metadata, and library cues.",
-    bestWhen: "The product should immediately feel tied to reports, books, and galleries.",
+    bestWhen: "The product should immediately feel tied to reports and Digital Buck Books.",
     accent: "sand",
   },
   {
