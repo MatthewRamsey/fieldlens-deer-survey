@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestOrigin } from "@/lib/request-origin";
 import { buckDisplayName } from "@/lib/digital-buck-label";
+import { normalizeBuckAge } from "@/lib/digital-buck-age";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -50,7 +51,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ bookId: st
     }
     manifest.push({ printOrder: index + 1, propertyName: account?.property_name ?? "", surveyYear: book.survey_year,
       buckId: buck.id, buckName: buckDisplayName(buck.name, buck.nickname), identifier: buck.name,
-      nickname: buck.nickname || null, ageClass: buck.age_class,
+      nickname: buck.nickname || null, ageClass: normalizeBuckAge(buck.age_class),
       originalHighlight: originalFile, printJpeg: isJpeg ? null : printFile });
   }
   zip.file("manifest.json", JSON.stringify({ propertyName: account?.property_name, surveyYear: book.survey_year,

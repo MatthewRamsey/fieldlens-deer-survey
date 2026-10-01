@@ -65,7 +65,7 @@ async function findBuck(buckId: string) {
 export async function createDigitalBuckForPhoto(bookId: string, ageClass: string, uploadKey: string) {
   const { supabase } = await findBook(bookId);
   const age = ageClass.trim();
-  if (!/^[0-9]+(?:\.[0-9]+)?\+?$/.test(age)) throw new Error("Choose a valid age group.");
+  if (!/^[1-5]$/.test(age)) throw new Error("Choose an age group from 1 to 5.");
   if (!/^[0-9a-f-]{36}$/i.test(uploadKey)) throw new Error("Invalid upload key.");
   const { data, error } = await supabase.rpc("create_digital_buck_for_photo", {
     p_book_id: bookId, p_age_class: age, p_upload_key: uploadKey,
@@ -78,7 +78,7 @@ export async function updateDigitalBuck(buckId: string, values: { nickname: stri
   const { supabase, book } = await findBuck(buckId);
   const nickname = values.nickname.trim();
   if (nickname.length > 120) throw new Error("Keep nicknames to 120 characters or less.");
-  if (!/^[0-9]+(?:\.[0-9]+)?\+?$/.test(values.ageClass.trim())) throw new Error("Choose a valid age group.");
+  if (!/^[1-5]$/.test(values.ageClass.trim())) throw new Error("Choose an age group from 1 to 5.");
   if (!Number.isSafeInteger(values.order) || values.order < 0) throw new Error("Choose a valid print order.");
   if (book.status === "published" && values.selected) {
     const { data: highlight } = await supabase.from("digital_buck_images").select("id")

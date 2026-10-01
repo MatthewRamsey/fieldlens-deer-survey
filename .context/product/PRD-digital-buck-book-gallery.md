@@ -63,7 +63,7 @@ The current design asks an administrator to manage a separate QR code for every 
 ## Acceptance scenarios
 
 1. An admin publishes a 2026 book for Property A and a 2026 book for Property B. Each export contains one QR asset. Scanning A's code opens A's 2026 grouped gallery and never reveals B's images; scanning B's opens B's gallery. A 2027 book for A gets a different destination.
-2. A book contains two 3.5-year bucks, one 4.5-year buck, one selected buck without an age class, and one unselected buck. The public gallery shows the four selected highlights exactly once in the appropriate groups; the unselected buck and image return 404 by direct public URL.
+2. A book contains two age-3 bucks, one age-4 buck, one selected buck without an age class, and one unselected buck. The public gallery shows the four selected highlights exactly once in the appropriate groups; the unselected buck and image return 404 by direct public URL.
 3. A reader opens a buck with one highlight and four additional photos, views all five in order, then returns to the same gallery position. A buck with only a highlight has no inactive additional-photo controls. The flow works with mouse, keyboard, touch, and a screen reader.
 4. After publication, an admin changes a buck's age class, highlight, or selection. The existing book QR still opens the same book. The gallery and viewer reflect the saved change, and a removed or unselected buck's public image is no longer available.
 5. A draft or unpublished book QR does not expose the gallery. Invalid tokens and cross-book image URLs do not expose content. A signed-in client only sees books for assigned properties.
@@ -101,7 +101,7 @@ The current design asks an administrator to manage a separate QR code for every 
 
 ## Open questions
 
-1. Should age groups use a fixed set of admin-selected labels (for example, 3.5, 4.5, and 5.5+ years)? The current build groups free-text labels after trimming whitespace and ignoring case, sorts numeric ages upward, and places Unclassified last. Confirm or change this rule.
+1. Age groups use the fixed admin-selected values 1 through 5. The gallery sorts them in ascending order and places any legacy unclassified buck last.
 2. Have any buck-specific QR codes already been printed or shared? The current build keeps those direct links working for published, selected bucks while generating only book-level QR codes. Confirm how long that compatibility must remain.
 3. Should the single book QR be printed once in the physical book, or may the same code be repeated on multiple pages? The app will export one QR asset either way.
 4. Should the grouped gallery's age-group order also determine the print export's page order? The current build keeps the existing admin-selected print order independent. Confirm or change this rule.

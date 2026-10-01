@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { normalizeBuckAge } from "@/lib/digital-buck-age";
 
 export type BuckImage = {
   id: string;
@@ -76,7 +77,7 @@ export async function getAdminBook(clientSlug: string, year: string): Promise<Bu
     .in("buck_id", buckIds).order("display_order").order("created_at") : { data: [], error: null };
   if (imageError) throw new Error(imageError.message);
   return { ...book, buckPrefix: account.buck_prefix, nextBuckNumber: account.buck_next_number,
-    bucks: (bucks ?? []).map(buck => ({ ...buck,
+    bucks: (bucks ?? []).map(buck => ({ ...buck, age_class: normalizeBuckAge(buck.age_class) ?? "",
     images: (images ?? []).filter(image => image.buck_id === buck.id),
   })) } as BuckBook;
 }
@@ -86,7 +87,10 @@ export async function getPublishedBook(token: string): Promise<PublishedBook | n
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_published_digital_book", { p_token: token });
   if (error || !data) return null;
-  return data as PublishedBook;
+  const book = data as PublishedBook;
+  return { ...book, bucks: book.bucks.map(buck => ({
+    ...buck, ageClass: normalizeBuckAge(buck.ageClass) ?? "",
+  })) };
 }
 
 export function publicBookHref(token: string, buckId?: string) {

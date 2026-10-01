@@ -14,6 +14,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { createClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import type { Buck, BuckBook } from "@/lib/digital-buck-book";
+import { buckAgeGroups, buckAgeLabel, normalizeBuckAge } from "@/lib/digital-buck-age";
 import { buckDisplayName } from "@/lib/digital-buck-label";
 import {
   createDigitalBuckForPhoto, createDigitalBook, discardUnfinishedDigitalBuckImage, processDigitalBuckImage, removeDigitalBuck,
@@ -30,12 +31,8 @@ function actionError(error: unknown) {
 }
 const Label = (props: React.ComponentProps<"label">) => <label {...props} />;
 const acceptedPhotoTypes = ".jpg,.jpeg,.png,.webp,.heic,.heif,.dng,.cr2,.cr3,.nef,.arw,.raf,.orf,.rw2";
-const standardAgeGroups = ["1.5", "2.5", "3.5", "4.5", "5.5+"];
 type BatchFile = { key: string; file: File };
 type BatchResult = { key: string; fileName: string; buckId?: string; name?: string; imageId?: string; error?: string };
-function editableAgeClass(value: string) {
-  return value.trim().replace(/\s*(?:years?|yrs?)(?:\s*old)?$/i, "");
-}
 
 function validatePhoto(file: File) {
   if (file.size < 1 || file.size > 50 * 1024 * 1024) throw new Error(`${file.name}: Photos must be 50 MB or smaller.`);
@@ -97,7 +94,7 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
 }) {
   const router = useRouter();
   const [addingBuck, setAddingBuck] = useState(false);
-  const [newAgeClass, setNewAgeClass] = useState("3.5");
+  const [newAgeClass, setNewAgeClass] = useState("3");
   const [newPhotos, setNewPhotos] = useState<BatchFile[]>([]);
   const [newUploadState, setNewUploadState] = useState("");
   const [batchResults, setBatchResults] = useState<BatchResult[]>([]);
@@ -108,8 +105,6 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
   const missingHighlights = selectedBucks.filter(buck => !buck.images.some(image => image.status === "ready" && image.is_highlight));
   const missingAgeClasses = selectedBucks.filter(buck => !buck.age_class.trim());
   const failedPhotos = book?.bucks.reduce((count, buck) => count + buck.images.filter(image => image.status === "failed").length, 0) ?? 0;
-  const ageGroups = [...new Set([...standardAgeGroups, ...(book?.bucks.map(buck => buck.age_class) ?? [])
-    .filter(value => /^[0-9]+(?:\.[0-9]+)?\+?$/.test(value))])];
   const run = (work: () => Promise<unknown>, success: string) => {
     setError(""); setMessage("");
     start(async () => { try { await work(); setMessage(success); router.refresh(); } catch (cause) { setError(actionError(cause)); } });
@@ -167,7 +162,7 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
         <div><p className="eyebrow">Bulk upload</p><h3>Add bucks by age group</h3><p>Each selected photo creates one buck and becomes its highlight. Add more photos to a buck in its editor below.</p></div>
         <div className="digital-add-buck-fields">
           <div><Label htmlFor="new-buck-age">Age group</Label><NativeSelect autoFocus id="new-buck-age" value={newAgeClass} onChange={event => setNewAgeClass(event.target.value)}>
-            {ageGroups.map(age => <option key={age} value={age}>{age} years</option>)}
+            {buckAgeGroups.map(age => <option key={age} value={age}>{buckAgeLabel(age)}</option>)}
           </NativeSelect></div>
           <div><Label>Property and survey year</Label><p>{propertyName} · {year}</p></div>
         </div>
@@ -254,7 +249,7 @@ function BuckEditor({ buck, index, book, busy, setError, run }: {
 }) {
   const router = useRouter();
   const [nickname, setNickname] = useState(buck.nickname ?? "");
-  const [ageClass, setAgeClass] = useState(editableAgeClass(buck.age_class));
+  const [ageClass, setAgeClass] = useState(normalizeBuckAge(buck.age_class) ?? "");
   const [selected, setSelected] = useState(buck.print_selected);
   const [order, setOrder] = useState(buck.display_order);
   const [uploadState, setUploadState] = useState("");
@@ -270,8 +265,8 @@ function BuckEditor({ buck, index, book, busy, setError, run }: {
     <div className="digital-buck-fields">
       <div><Label htmlFor={`nickname-${buck.id}`}>Nickname (optional)</Label><Input id={`nickname-${buck.id}`} value={nickname} maxLength={120} placeholder="Example: Big Boy" onChange={event => setNickname(event.target.value)} /><small>Identifier: {buck.name}</small></div>
       <div><Label htmlFor={`age-${buck.id}`}>Age group</Label><NativeSelect id={`age-${buck.id}`} value={ageClass} onChange={event => setAgeClass(event.target.value)}>
-        {!/^[0-9]+(?:\.[0-9]+)?\+?$/.test(ageClass) && <option value={ageClass}>{ageClass || "Choose an age group"}</option>}
-        {[...new Set([...standardAgeGroups, ageClass].filter(value => /^[0-9]+(?:\.[0-9]+)?\+?$/.test(value)))].map(age => <option key={age} value={age}>{age} years</option>)}
+        {!ageClass && <option value="">Choose an age group</option>}
+        {buckAgeGroups.map(age => <option key={age} value={age}>{buckAgeLabel(age)}</option>)}
       </NativeSelect></div>
       <div><Label htmlFor={`order-${buck.id}`}>Print order</Label><Input id={`order-${buck.id}`} type="number" value={order} onChange={event => setOrder(Number(event.target.value))} /></div>
       <div className="digital-buck-selection"><Label htmlFor={`select-${buck.id}`}>Include in print and digital book</Label><input id={`select-${buck.id}`} type="checkbox" checked={selected} onChange={event => setSelected(event.target.checked)} /></div>

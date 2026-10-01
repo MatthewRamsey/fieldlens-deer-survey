@@ -90,4 +90,39 @@ begin
 end;
 $$;
 
-select 'PASS: migration, deletion, 100-buck sequence, retry, age stability, property rename, property isolation' as result;
+begin;
+\ir ../supabase/migrations/20261001200754_normalize_digital_buck_ages.sql
+commit;
+
+begin;
+\ir ../supabase/migrations/20261001200759_constrain_digital_buck_ages.sql
+commit;
+
+do $$
+declare result jsonb;
+begin
+  if (select age_class from public.digital_bucks where id='41111111-1111-4111-8111-111111111111') <> '3'
+    or (select age_class from public.digital_bucks where id='42222222-2222-4222-8222-222222222222') <> '4'
+    or (select age_class from public.digital_bucks where name='BCF3') <> '2' then
+    raise exception 'legacy age groups were not converted';
+  end if;
+  if exists (select 1 from public.digital_bucks where age_class not in ('1','2','3','4','5')) then
+    raise exception 'nonstandard age groups remain';
+  end if;
+  result := public.create_digital_buck_for_photo('22222222-2222-4222-8222-222222222222','5',gen_random_uuid());
+  if result->>'name' <> 'BCF104' then raise exception 'whole-year age buck was not created'; end if;
+  begin
+    perform public.create_digital_buck_for_photo('22222222-2222-4222-8222-222222222222','5.5+',gen_random_uuid());
+    raise exception 'legacy age was accepted';
+  exception when others then
+    if sqlerrm <> 'Choose a valid age group' then raise; end if;
+  end;
+  begin
+    update public.digital_bucks set age_class='3.5' where id='41111111-1111-4111-8111-111111111111';
+    raise exception 'legacy age was saved';
+  exception when check_violation then null;
+  end;
+end;
+$$;
+
+select 'PASS: migration, 100-buck sequence, whole-year age conversion and enforcement' as result;

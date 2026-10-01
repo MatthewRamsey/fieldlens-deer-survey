@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { groupBucksByAge, type AgeGroup } from "@/lib/digital-buck-groups";
+import { buckAgeLabel } from "@/lib/digital-buck-age";
 import type { PublishedBook } from "@/lib/digital-buck-book";
 
 const publicBookHref = (token: string, buckId?: string) => `/book/${token}${buckId ? `/bucks/${buckId}` : ""}`;
@@ -51,7 +52,7 @@ function AgeGroupSection({ group, index, href, imageHref, savePosition }: {
           width={640} height={440} unoptimized loading={index === 0 && group.bucks[0].id === buck.id ? "eager" : "lazy"} />
           : <div className="digital-book-image-placeholder">Highlight photo needed</div>}
         <div><span>View buck photos</span><h3>{buck.name}</h3>
-          <p>{buck.ageClass.trim() || "Age not recorded"}</p>
+          <p>{buckAgeLabel(buck.ageClass)}</p>
           {buck.images.length > 1 && <p>{buck.images.length - 1} additional photo{buck.images.length === 2 ? "" : "s"}</p>}</div>
       </Link>
     </div>)}</div>
@@ -110,7 +111,7 @@ export function DigitalBookReader({ book, buckId, embeddedHref, adminPreview = f
         <Link href={href()} className="digital-book-back"><ArrowLeft size={17} /> All bucks</Link>
         <p className="eyebrow">Buck {index + 1} of {orderedBucks.length}</p>
         <h1>{buck.name}</h1>
-        <p className="digital-book-age">{buck.ageClass.trim() || "Unclassified"}</p>
+        <p className="digital-book-age">{buckAgeLabel(buck.ageClass)}</p>
       </div>
       {buck.images.length > 0 && <div className="digital-book-photo-viewer" tabIndex={0} role="region" aria-label={`${buck.name} photo viewer`}
         onKeyDown={event => {
