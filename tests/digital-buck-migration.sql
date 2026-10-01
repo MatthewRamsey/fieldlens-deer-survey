@@ -42,7 +42,13 @@ insert into public.digital_bucks (id,book_id,name,age_class,observations,descrip
 insert into public.digital_buck_images (id,buck_id,status,is_highlight,caption) values
   ('51111111-1111-4111-8111-111111111111','41111111-1111-4111-8111-111111111111','ready',true,'old caption');
 
+begin;
 \ir ../supabase/migrations/20261001183310_property_buck_bulk_upload.sql
+commit;
+
+begin;
+\ir ../supabase/migrations/20261001195516_finalize_property_buck_bulk_upload.sql
+commit;
 
 do $$
 declare result jsonb;

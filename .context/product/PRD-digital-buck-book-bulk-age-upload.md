@@ -1,6 +1,6 @@
 # Digital Buck Book — Bulk Age-Group Upload and Buck Names
 
-**Status:** Implemented locally; production migration pending
+**Status:** Released to production on 2026-10-01
 
 **Date:** 2026-10-01
 **Product:** Upland Wildlife Management admin, client, and public Digital Buck Book
