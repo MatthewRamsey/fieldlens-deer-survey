@@ -8,5 +8,5 @@ export function normalizeBuckAge(value: string): string | null {
 
 export function buckAgeLabel(value: string): string {
   const age = normalizeBuckAge(value);
-  return age ? `${age} ${age === "1" ? "year" : "years"}` : "Unclassified";
+  return age ? `${age} ${age === "1" ? "year" : "years"} old` : "Unclassified";
 }

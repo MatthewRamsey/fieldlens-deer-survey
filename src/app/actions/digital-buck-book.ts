@@ -192,17 +192,6 @@ export async function setDigitalBuckHighlight(imageId: string) {
   refresh();
 }
 
-export async function updateDigitalBuckImage(imageId: string, altText: string, order: number) {
-  const supabase = await adminClient();
-  if (!Number.isSafeInteger(order) || order < 0) throw new Error("Choose a valid photo order.");
-  const { data, error } = await supabase.from("digital_buck_images").update({
-    alt_text: altText.trim().slice(0, 300), display_order: order,
-  }).eq("id", imageId).select("id").maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Photo not found for this administrator.");
-  refresh();
-}
-
 export async function removeDigitalBuckImage(imageId: string) {
   const supabase = await adminClient();
   const { data: image } = await supabase.from("digital_buck_images").select("buck_id,is_highlight,original_path,web_path,print_path").eq("id", imageId).maybeSingle();

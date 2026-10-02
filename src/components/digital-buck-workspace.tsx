@@ -20,7 +20,7 @@ import {
   createDigitalBuckForPhoto, createDigitalBook, discardUnfinishedDigitalBuckImage, processDigitalBuckImage, removeDigitalBuck,
   removeEmptyDigitalBuck,
   removeDigitalBuckImage, reserveDigitalBuckImage, setDigitalBookPublished,
-  setDigitalBuckHighlight, updateDigitalBuck, updateDigitalBuckImage,
+  setDigitalBuckHighlight, updateDigitalBuck,
 } from "@/app/actions/digital-buck-book";
 
 function actionError(error: unknown) {
@@ -184,7 +184,7 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
           <Button disabled={busy} variant="outline" type="button" onClick={() => setAddingBuck(false)}>Cancel</Button></div>
       </form>}
       <div className="digital-book-toolbar">
-        <div><strong>{selectedBucks.length} selected for print</strong><p>Only selected bucks appear in the digital book.</p></div>
+        <div><strong>{selectedBucks.length} selected for print</strong><p>Book order sets the buck sequence in print and the digital gallery. Photos appear in upload order.</p></div>
         <div className="digital-toolbar-actions">
           <Button variant="outline" nativeButton={false} render={<Link href={book.status === "published"
             ? `/book/${book.public_token}/qr`
@@ -268,7 +268,7 @@ function BuckEditor({ buck, index, book, busy, setError, run }: {
         {!ageClass && <option value="">Choose an age group</option>}
         {buckAgeGroups.map(age => <option key={age} value={age}>{buckAgeLabel(age)}</option>)}
       </NativeSelect></div>
-      <div><Label htmlFor={`order-${buck.id}`}>Print order</Label><Input id={`order-${buck.id}`} type="number" value={order} onChange={event => setOrder(Number(event.target.value))} /></div>
+      <div><Label htmlFor={`order-${buck.id}`}>Book order</Label><Input id={`order-${buck.id}`} type="number" min="0" value={order} onChange={event => setOrder(Number(event.target.value))} /></div>
       <div className="digital-buck-selection"><Label htmlFor={`select-${buck.id}`}>Include in print and digital book</Label><input id={`select-${buck.id}`} type="checkbox" checked={selected} onChange={event => setSelected(event.target.checked)} /></div>
     </div>
     <div className="digital-editor-actions">
@@ -297,17 +297,7 @@ function BuckEditor({ buck, index, book, busy, setError, run }: {
       <div><strong>{image.original_name}</strong><span>{image.is_highlight ? "Highlight" : "Supporting photo"}</span></div>
       {image.status === "ready" && <div className="digital-image-actions"><Button disabled={busy || image.is_highlight} variant="outline" size="sm" onClick={() => run(() => setDigitalBuckHighlight(image.id), "Highlight updated.")}>Use as highlight</Button>
         {image.is_highlight && <Button nativeButton={false} variant="outline" size="sm" render={<a href={`/api/digital-buck/admin-original/${image.id}`} />}>Download highlight</Button>}</div>}
-      <ImageFields id={image.id} initialAlt={image.alt_text} initialOrder={image.display_order} busy={busy} run={run} />
       <Button disabled={busy} variant="outline" size="sm" onClick={() => { if (window.confirm("Remove this photo?")) run(() => removeDigitalBuckImage(image.id), "Photo removed."); }}>Remove photo</Button>
     </div>)}</div>
   </Card>;
-}
-
-function ImageFields({ id, initialAlt, initialOrder, busy, run }: { id: string; initialAlt: string; initialOrder: number; busy: boolean; run: (work: () => Promise<unknown>, success: string) => void }) {
-  const [alt, setAlt] = useState(initialAlt);
-  const [order, setOrder] = useState(initialOrder);
-  return <div className="digital-image-fields"><Label htmlFor={`alt-${id}`}>Image accessibility text (optional)</Label><Input id={`alt-${id}`} value={alt} onChange={event => setAlt(event.target.value)} />
-    <Label htmlFor={`image-order-${id}`}>Photo order</Label><Input id={`image-order-${id}`} type="number" value={order} onChange={event => setOrder(Number(event.target.value))} />
-    <Button disabled={busy} variant="outline" size="sm" onClick={() => run(() => updateDigitalBuckImage(id, alt, order), "Photo saved.")}>Save photo details</Button>
-  </div>;
 }

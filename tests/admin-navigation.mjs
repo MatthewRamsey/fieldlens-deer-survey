@@ -564,8 +564,14 @@ try {
   await page.getByRole('button', { name: 'Save buck' }).click();
   await page.getByText('Buck saved.').waitFor();
   assert.equal(await page.getByLabel('Photo caption (optional)').count(), 0);
-  await page.getByRole('button', { name: 'Save photo details' }).first().click();
-  await page.getByText('Photo saved.').waitFor();
+  assert.equal(await page.getByLabel('Image accessibility text (optional)').count(), 0);
+  assert.equal(await page.getByLabel('Photo order').count(), 0);
+  assert.equal(await page.getByLabel('Book order').count(), 1);
+  const firstBuckFields = page.locator('.digital-buck-editor').first().locator('.digital-buck-fields');
+  assert.ok(await firstBuckFields.evaluate(fields => {
+    const controls = [...fields.children].map(field => field.querySelector('input, select').getBoundingClientRect());
+    return Math.max(...controls.map(control => control.top + control.height / 2)) - Math.min(...controls.map(control => control.top + control.height / 2)) <= 3;
+  }), 'Buck editor controls align on desktop');
   assert.equal(await page.getByRole('button', { name: 'Show QR code', exact: true }).count(), 0);
   assert.equal(await page.getByRole('button', { name: 'Show book QR code' }).count(), 0);
   assert.equal(await page.locator('a[href="#book-qr"]').count(), 0);
@@ -636,11 +642,12 @@ try {
   assert.equal(await page.getByRole('navigation', { name: 'Admin navigation' }).getByRole('link', { name: 'Digital Buck Book' }).getAttribute('aria-current'), 'page');
   await auditMobile('digital-admin');
   await visit(`/admin/preview/north?section=digital-buck-book&year=${year}`, 'north property');
-  await page.getByRole('heading', { name: '4 years', level: 2 }).waitFor();
+  await page.getByRole('heading', { name: '4 years old', level: 2 }).waitFor();
   assert.equal(await page.getByRole('button', { name: /Compare highlights/ }).count(), 0);
   await page.getByRole('link', { name: 'View North Eight and its photos' }).click();
   await page.getByRole('img', { name: 'Buck at trail camera' }).waitFor();
-  assert.equal(await page.locator('.digital-book-age').textContent(), '4 years');
+  assert.equal(await page.locator('.digital-book-age').textContent(), '4 years old');
+  assert.equal(await page.locator('.digital-book-heading h1').innerText(), 'North Eight 4 years old');
   assert.equal(await page.getByText('A familiar buck seen by the north trail.').count(), 0);
   assert.equal(await page.getByText('North trail camera, late summer').count(), 0);
   await auditMobile('digital-admin-preview');
@@ -649,7 +656,7 @@ try {
   assert.equal(await page.locator('.digital-book-toolbar a').filter({ hasText: 'Preview draft' }).getAttribute('href'),
     `/admin/preview/north?section=digital-buck-book&year=${year}`);
   await visit(`/admin/preview/north?section=digital-buck-book&year=${year}`, 'north property');
-  await page.getByRole('heading', { name: '4 years', level: 2 }).waitFor();
+  await page.getByRole('heading', { name: '4 years old', level: 2 }).waitFor();
   assert.equal((await context.request.get(`${origin}/book/${bookToken}/qr`)).status(), 404);
   assert.equal((await context.request.get(`${origin}/book/${bookToken}/images/${imageId}`)).status(), 404);
   bookStatus = 'published';
@@ -695,7 +702,7 @@ try {
   await page.getByText('Photo 2 of 3').waitFor();
   await auditMobile('digital-client-detail');
   await page.getByRole('link', { name: 'All bucks' }).click();
-  await page.getByRole('heading', { name: '4 years', level: 2 }).waitFor();
+  await page.getByRole('heading', { name: '4 years old', level: 2 }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Show book QR code' }).count(), 0);
   assert.equal(await page.getByRole('link', { name: 'Download book QR' }).count(), 0);
   assert.equal(await page.getByRole('link', { name: 'Download print assets' }).count(), 0);
@@ -707,7 +714,7 @@ try {
   assert.equal(await page.getByText('North Eight').count(), 0);
   assert.equal((await page.goto(`${origin}/portal/digital-buck-book?client=not-assigned&year=${year}`)).status(), 404);
   await visit(`/portal/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
-  await page.getByRole('heading', { name: '4 years', level: 2 }).waitFor();
+  await page.getByRole('heading', { name: '4 years old', level: 2 }).waitFor();
   await page.goto(origin + '/');
   assert.equal(await page.getByText('Assigned client', { exact: true }).count(), 0);
   assert.equal(await page.getByLabel('Archive view').inputValue(), year);
@@ -842,7 +849,7 @@ try {
   }
   const multiBuckResponse = await page.goto(`${origin}/book/${bookToken}`);
   assert.equal(multiBuckResponse.status(), 200);
-  assert.deepEqual(await page.locator('.digital-age-group h2').allTextContents(), ['4 years', '5 years']);
+  assert.deepEqual(await page.locator('.digital-age-group h2').allTextContents(), ['4 years old', '5 years old']);
   assert.deepEqual(await page.locator('.digital-book-card h3').allTextContents(), ['North Eight', 'South Nine']);
   assert.equal(await page.getByText('Draft Ten').count(), 0);
   assert.equal((await page.goto(`${origin}/book/${bookToken}/bucks/${excludedBuckId}`)).status(), 404);
@@ -850,8 +857,11 @@ try {
   assert.equal((await context.request.get(`${origin}/book/${bookToken}/images/${excludedImageId}`)).status(), 404);
   assert.equal((await page.goto(`${origin}/book/${bookToken}/bucks/${secondBuckId}`)).status(), 200);
   await page.getByRole('heading', { name: 'South Nine', level: 1 }).waitFor();
-  await page.getByRole('navigation', { name: 'Other bucks' }).getByRole('link', { name: /North Eight/ }).click();
+  const buckNavigation = page.getByRole('navigation', { name: 'Browse bucks' });
+  assert.ok(await buckNavigation.evaluate(element => element.getBoundingClientRect().bottom < document.querySelector('.digital-book-photo-viewer').getBoundingClientRect().top));
+  await buckNavigation.getByRole('link', { name: 'Previous: North Eight' }).click();
   await page.getByRole('heading', { name: 'North Eight', level: 1 }).waitFor();
+  assert.equal(await page.getByRole('navigation', { name: 'Browse bucks' }).getByRole('link', { name: 'Next: South Nine' }).count(), 1);
   await login('admin');
   const twoBuckExport = await context.request.get(`${origin}/api/digital-buck/export/${bookId}`);
   assert.equal(twoBuckExport.status(), 200);
@@ -890,7 +900,7 @@ try {
     originals.set(path, testJpeg);
   }
   await page.goto(`${origin}/book/${bookToken}/qr`);
-  assert.deepEqual(await page.locator('.digital-age-group h2').allTextContents(), ['4 years', '5 years', 'Unclassified']);
+  assert.deepEqual(await page.locator('.digital-age-group h2').allTextContents(), ['4 years old', '5 years old', 'Unclassified']);
   assert.deepEqual(await page.locator('.digital-book-card h3').allTextContents(), ['North Eight', 'North Eight Twin', 'South Nine', 'Unknown Age']);
   assert.equal(await page.getByText('2 bucks', { exact: true }).count(), 1);
   const firstAgeGroup = page.locator('.digital-age-group').first();
@@ -1031,7 +1041,7 @@ try {
   await page.getByRole('button', { name: 'Add bucks', exact: true }).click();
   const addBuckForm = page.locator('#add-buck-form');
   assert.deepEqual(await addBuckForm.getByLabel('Age group').locator('option').allTextContents(),
-    ['1 year', '2 years', '3 years', '4 years', '5 years']);
+    ['1 year old', '2 years old', '3 years old', '4 years old', '5 years old']);
   await addBuckForm.getByLabel('Age group').selectOption('5');
   await addBuckForm.locator('input[type="file"]').setInputFiles([
     { name: 'east-eleven.jpg', mimeType: 'image/jpeg', buffer: testJpeg },

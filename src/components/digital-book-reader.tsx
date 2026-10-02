@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { groupBucksByAge, type AgeGroup } from "@/lib/digital-buck-groups";
 import { buckAgeLabel } from "@/lib/digital-buck-age";
 import type { PublishedBook } from "@/lib/digital-buck-book";
@@ -110,9 +110,16 @@ export function DigitalBookReader({ book, buckId, embeddedHref, adminPreview = f
       <div className="digital-book-heading">
         <Link href={href()} className="digital-book-back"><ArrowLeft size={17} /> All bucks</Link>
         <p className="eyebrow">Buck {index + 1} of {orderedBucks.length}</p>
-        <h1>{buck.name}</h1>
-        <p className="digital-book-age">{buckAgeLabel(buck.ageClass)}</p>
+        <h1>{buck.name} <span className="digital-book-age">{buckAgeLabel(buck.ageClass)}</span></h1>
       </div>
+      <nav className="digital-book-buck-nav" aria-label="Browse bucks">
+        {orderedBucks[index - 1] && <Link className={buttonVariants({ variant: "outline" })} href={href(orderedBucks[index - 1].id)}>
+          <ArrowLeft aria-hidden="true" /> Previous: {orderedBucks[index - 1].name}
+        </Link>}
+        {orderedBucks[index + 1] && <Link className={buttonVariants({ variant: "outline" })} href={href(orderedBucks[index + 1].id)}>
+          Next: {orderedBucks[index + 1].name} <ArrowRight aria-hidden="true" />
+        </Link>}
+      </nav>
       {buck.images.length > 0 && <div className="digital-book-photo-viewer" tabIndex={0} role="region" aria-label={`${buck.name} photo viewer`}
         onKeyDown={event => {
           if (event.key === "Escape") { event.preventDefault(); router.push(href()); }
@@ -149,10 +156,6 @@ export function DigitalBookReader({ book, buckId, embeddedHref, adminPreview = f
           </div>
         </>}
       </div>}
-      <nav className="digital-book-buck-nav" aria-label="Other bucks">
-        {orderedBucks[index - 1] ? <Link href={href(orderedBucks[index - 1].id)}><ArrowLeft size={16} /> {orderedBucks[index - 1].name}</Link> : <span />}
-        {orderedBucks[index + 1] ? <Link href={href(orderedBucks[index + 1].id)}>{orderedBucks[index + 1].name} <ArrowRight size={16} /></Link> : <span />}
-      </nav>
     </> : <>
       <div className="digital-book-heading"><p className="eyebrow">{book.year} digital buck book</p><h1>{book.propertyName}</h1>
         <p>Explore the bucks selected for this year&apos;s printed book by age group.</p>
