@@ -553,6 +553,9 @@ try {
   console.log('PASS: query fallbacks, lifetime archive, document links, reset mode, and retired routes');
   await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
   await page.getByRole('heading', { name: 'North Eight' }).waitFor();
+  const photoGrid = page.locator('.digital-buck-editor').first().locator('.digital-image-grid');
+  assert.equal(await photoGrid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length), 4,
+    'One admin photo occupies one of four equal desktop columns');
   const adminImage = await context.request.get(`${origin}/api/digital-buck/admin-image/${imageId}`);
   assert.equal(adminImage.status(), 200, `Admin image: ${await adminImage.text()}`);
   const originalHighlight = await context.request.get(`${origin}/api/digital-buck/admin-original/${imageId}`);
@@ -592,6 +595,10 @@ try {
   try { await page.getByText('additional.jpg ready').waitFor({ timeout: 15000 }); }
   catch (error) { console.error('Upload diagnostic:', await page.locator('.digital-feedback, .digital-image-section [role="status"]').allTextContents(), { imageRows: digitalImages.length, tusPath, uploadedBytes: tusBytes.length }); throw error; }
   await page.waitForFunction(() => document.querySelectorAll('.digital-image-card').length === 2);
+  assert.ok(await photoGrid.evaluate(element => {
+    const [first, second] = [...element.children].map(child => child.getBoundingClientRect());
+    return Math.abs(first.width - second.width) < 1 && Math.abs(first.top - second.top) < 1;
+  }), 'Two admin photos stay the same size in one row');
   assert.equal(digitalImages.length, 2);
   const exportResponse = await context.request.get(`${origin}/api/digital-buck/export/${bookId}`);
   assert.equal(exportResponse.status(), 200, await exportResponse.text());
