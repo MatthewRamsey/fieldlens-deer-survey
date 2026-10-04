@@ -1,9 +1,6 @@
 export type SurveyYear = string;
 
-export type DocumentCategory =
-  | "Camera survey report"
-  | "Map export"
-  | "Harvest plan";
+export type DocumentCategory = string;
 
 export type DocumentVisibility = "admin" | "client";
 export type DocumentStatus = "Draft" | "Published";
@@ -19,6 +16,7 @@ export type ClientDocument = {
   visibility: DocumentVisibility;
   status: DocumentStatus;
   notes: string;
+  deletedAt?: string | null;
 };
 
 export type Client = {

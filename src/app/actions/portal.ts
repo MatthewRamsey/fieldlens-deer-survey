@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { DocumentCategory, DocumentVisibility } from "@/lib/portal-types";
+import type { DocumentVisibility } from "@/lib/portal-types";
 import { createClient } from "@/lib/supabase/server";
 
 export type PortalMutationState = {
@@ -65,14 +65,14 @@ export async function uploadDocuments(
 ): Promise<PortalMutationState> {
   const clientSlug = getField(formData, "client_slug");
   const surveyYear = getField(formData, "survey_year");
-  const category = getField(formData, "category") as DocumentCategory;
+  const category = getField(formData, "category");
   const visibility = getField(formData, "visibility") as DocumentVisibility;
   const uploadSource = getField(formData, "upload_source");
   const notes = getField(formData, "notes");
   const files = getUploadedFiles(formData);
 
-  if (!["Camera survey report", "Map export", "Harvest plan"].includes(category))
-    return { error: "Choose a valid document category." };
+  if (!category || category.length > 100 || /[\x00-\x1f\x7f]/.test(category))
+    return { error: "Enter a document category of 1–100 characters without control characters." };
 
   if (!clientSlug || !surveyYear || files.length === 0) {
     return {
@@ -113,4 +113,30 @@ export async function uploadDocuments(
   return {
     success: `${files.length} document${files.length === 1 ? "" : "s"} uploaded.`,
   };
+}
+
+export async function deletePortalDocument(clientSlug: string, documentId: string): Promise<PortalMutationState> {
+  if (!/^[0-9a-f-]{36}$/i.test(documentId)) return { error: "Choose a valid document." };
+  const { supabase, accountId } = await getAccessibleClientAccountId(clientSlug);
+  if (!accountId) return { error: "This document is not available to your admin account." };
+  const { data: document, error: lookupError } = await supabase.from("client_documents")
+    .select("id,file_path,deleted_at").eq("id", documentId).eq("client_account_id", accountId).maybeSingle();
+  if (lookupError) return { error: lookupError.message };
+  if (!document) return { error: "This document is no longer available." };
+
+  if (!document.deleted_at) {
+    const { error } = await supabase.from("client_documents")
+      .update({ deleted_at: new Date().toISOString() }).eq("id", documentId).eq("client_account_id", accountId);
+    if (error) return { error: `Could not start deletion: ${error.message}` };
+  }
+  revalidatePath("/", "layout");
+  const { error: storageError } = await supabase.storage.from("client-documents").remove([document.file_path]);
+  if (storageError) return { error: `Document hidden, but its file could not be removed: ${storageError.message}. Retry deletion from Reports.` };
+
+  const { data: removed, error: deleteError } = await supabase.from("client_documents")
+    .delete().eq("id", documentId).eq("client_account_id", accountId).select("id").maybeSingle();
+  if (deleteError || !removed)
+    return { error: `File removed, but document cleanup is pending: ${deleteError?.message ?? "Record not removed"}. Retry deletion from Reports.` };
+  revalidatePath("/", "layout");
+  return { success: "Document deleted." };
 }

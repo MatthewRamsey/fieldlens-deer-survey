@@ -43,6 +43,8 @@ const accounts = ['north', 'south'].map((slug, index) => ({ id: `account-${index
 const documents = [
   ...accounts.flatMap(account => [year, older].map(survey_year => ({ id: `${account.slug}-${survey_year}`, client_account_id: account.id, title: `${account.slug} report ${survey_year}`, category: 'Camera survey report', survey_year, created_at: `${survey_year}-01-01`, file_type: 'pdf', visibility: 'client', status: 'published', notes: 'Navigation fixture', file_path: 'test.pdf' }))),
 ];
+const documentFiles = new Map();
+let failDocumentRemovalOnce = false;
 function user(role) { return { id: role, email: `${role}@example.test`, user_metadata: {}, app_metadata: role === 'superadmin' ? { super_admin: true } : {}, aud: 'authenticated', created_at: `${year}-01-01` }; }
 function session(role) {
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -51,7 +53,7 @@ function session(role) {
 const backend = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,HEAD,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,HEAD,OPTIONS');
   res.setHeader('Access-Control-Expose-Headers', 'Location,Upload-Offset,Tus-Resumable');
   if (req.method === 'OPTIONS') { res.end(); return; }
   const url = new URL(req.url, api);
@@ -110,6 +112,17 @@ const backend = createServer(async (req, res) => {
   if (req.method === 'DELETE' && url.pathname.startsWith('/storage/v1/object/digital-buck-')) {
     let body = ''; for await (const chunk of req) body += chunk;
     for (const path of JSON.parse(body).prefixes ?? []) originals.delete(path);
+    send([]); return;
+  }
+  if (req.method === 'POST' && url.pathname.startsWith('/storage/v1/object/client-documents/')) {
+    const chunks = []; for await (const chunk of req) chunks.push(chunk);
+    documentFiles.set(decodeURIComponent(url.pathname.replace('/storage/v1/object/client-documents/', '')), Buffer.concat(chunks));
+    send({ Key: url.pathname }); return;
+  }
+  if (req.method === 'DELETE' && url.pathname === '/storage/v1/object/client-documents') {
+    if (failDocumentRemovalOnce) { failDocumentRemovalOnce = false; res.statusCode = 500; send({ message: 'Temporary storage failure' }); return; }
+    let body = ''; for await (const chunk of req) body += chunk;
+    for (const path of JSON.parse(body).prefixes ?? []) documentFiles.delete(path);
     send([]); return;
   }
   if (req.method === 'GET' && url.pathname.startsWith('/storage/v1/object/digital-buck-originals/')) {
@@ -177,6 +190,28 @@ const backend = createServer(async (req, res) => {
     send({ id: created.id, name: created.name, created: true, ready: false, highlightId: null }); return;
   }
   const table = url.pathname.split('/').at(-1);
+  if (table === 'client_documents' && req.method === 'POST') {
+    if (role !== 'admin' && role !== 'superadmin') { res.statusCode = 403; send({ message: 'Admin access required' }); return; }
+    let body = ''; for await (const chunk of req) body += chunk;
+    const entries = JSON.parse(body);
+    documents.push(...(Array.isArray(entries) ? entries : [entries]).map(entry => ({ ...entry, created_at: new Date().toISOString(), deleted_at: null })));
+    res.statusCode = 201; send([]); return;
+  }
+  if (table === 'client_documents' && req.method === 'PATCH') {
+    if (role !== 'admin' && role !== 'superadmin') { res.statusCode = 403; send({ message: 'Admin access required' }); return; }
+    let body = ''; for await (const chunk of req) body += chunk;
+    const changes = JSON.parse(body);
+    const entry = documents.find(item => item.id === url.searchParams.get('id')?.slice(3) && item.client_account_id === url.searchParams.get('client_account_id')?.slice(3));
+    if (entry) Object.assign(entry, changes);
+    send([]); return;
+  }
+  if (table === 'client_documents' && req.method === 'DELETE') {
+    if (role !== 'admin' && role !== 'superadmin') { res.statusCode = 403; send({ message: 'Admin access required' }); return; }
+    const index = documents.findIndex(item => item.id === url.searchParams.get('id')?.slice(3) && item.client_account_id === url.searchParams.get('client_account_id')?.slice(3));
+    const removed = index >= 0 ? documents.splice(index, 1)[0] : null;
+    send(req.headers.accept?.includes('application/vnd.pgrst.object+json') ? removed ? { id: removed.id } : null : removed ? [{ id: removed.id }] : []);
+    return;
+  }
   if (table === 'digital_buck_images' && req.method === 'POST') {
     let body = ''; for await (const chunk of req) body += chunk;
     const value = JSON.parse(body);
@@ -239,6 +274,7 @@ const backend = createServer(async (req, res) => {
   for (const [key, value] of url.searchParams) {
     if (value.startsWith('eq.')) rows = rows.filter(row => String(row[key]) === value.slice(3));
     if (value.startsWith('in.(')) rows = rows.filter(row => value.slice(4,-1).split(',').includes(String(row[key])));
+    if (value === 'is.null') rows = rows.filter(row => row[key] == null);
   }
   if (url.searchParams.get('order')?.startsWith('display_order.asc'))
     rows = [...rows].sort((a, b) => a.display_order - b.display_order);
@@ -318,6 +354,24 @@ try {
       return element.scrollTop > 0 && Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop) <= 1;
     }), 'The bottom of the content remains reachable');
     await main.evaluate(element => { element.scrollTop = 0; });
+  }
+  async function verifyBuckPhotoFits(label) {
+    await page.waitForFunction(() => {
+      const image = document.querySelector('.digital-book-photo img');
+      const viewer = document.querySelector('.digital-book-photo');
+      return image?.complete && image.naturalWidth > 0 && viewer?.hasAttribute('style') &&
+        viewer.getBoundingClientRect().bottom <= innerHeight + 1;
+    });
+    const position = await page.locator('.digital-book-photo img').evaluate(image => {
+      const imageRect = image.getBoundingClientRect();
+      const viewerRect = image.closest('.digital-book-photo').getBoundingClientRect();
+      return { imageTop: imageRect.top, imageBottom: imageRect.bottom, viewerTop: viewerRect.top,
+        viewerBottom: viewerRect.bottom, imageWidth: imageRect.width, imageHeight: imageRect.height,
+        objectFit: getComputedStyle(image).objectFit, viewportHeight: innerHeight };
+    });
+    assert.ok(position.imageTop >= -1 && position.imageBottom <= position.viewportHeight + 1, `${label}: full image fits viewport ${JSON.stringify(position)}`);
+    assert.ok(position.viewerTop >= -1 && position.viewerBottom <= position.viewportHeight + 1, `${label}: viewer fits viewport ${JSON.stringify(position)}`);
+    assert.equal(position.objectFit, 'contain', `${label}: the whole photo stays uncropped`);
   }
   async function verifyDesktopShell() {
     await page.setViewportSize({ width: 1920, height: 1000 });
@@ -546,6 +600,53 @@ try {
   await verifyDesktopShell();
   const report = await context.request.get(`${origin}/north/${year}/documents/north-${year}`);
   assert.equal(report.status(), 200); assert.match(report.headers()['content-type'], /pdf/);
+  const categoryField = page.locator('input[name="category"]');
+  await categoryField.fill('   ');
+  await page.locator('#report-files').setInputFiles({ name: 'invalid.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nInvalid fixture') });
+  await page.getByRole('button', { name: 'Add report upload' }).click();
+  await page.getByText('Enter a document category of 1–100 characters without control characters.').waitFor();
+  assert.equal(documents.filter(entry => entry.title === 'invalid').length, 0);
+  assert.equal([...documentFiles.keys()].some(path => path.includes('invalid')), false, 'Invalid category is rejected before file upload');
+  await categoryField.fill('  Habitat assessment  ');
+  await page.locator('#report-files').setInputFiles([
+    { name: 'habitat-a.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nFirst fixture') },
+    { name: 'habitat-b.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nSecond fixture') },
+  ]);
+  await page.getByRole('button', { name: 'Add report upload' }).click();
+  await page.getByText('2 documents uploaded.').waitFor();
+  assert.deepEqual(documents.filter(entry => entry.title.startsWith('habitat-')).map(entry => entry.category), ['Habitat assessment', 'Habitat assessment']);
+  assert.equal([...documentFiles.keys()].filter(path => path.includes('habitat-')).length, 2);
+  await login('client');
+  await visit(`/portal/reports?client=north&year=${year}`, 'Reports');
+  for (const title of ['habitat-a', 'habitat-b'])
+    assert.match(await page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: title }) }).innerText(), /Habitat assessment/);
+  assert.equal(await page.getByRole('button', { name: 'Delete document' }).count(), 0, 'Clients cannot delete documents');
+  await login('admin');
+  await visit(`/admin/reports?client=north&year=${year}`, 'Reports');
+  const firstCard = page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'habitat-a' }) });
+  const firstLink = await firstCard.getByRole('link', { name: 'Open document' }).getAttribute('href');
+  assert.equal((await context.request.get(origin + firstLink)).status(), 200);
+  page.once('dialog', dialog => dialog.dismiss());
+  await firstCard.getByRole('button', { name: 'Delete document' }).click();
+  assert.equal(await firstCard.count(), 1, 'Cancel leaves the document visible');
+  failDocumentRemovalOnce = true;
+  page.once('dialog', dialog => dialog.accept());
+  await firstCard.getByRole('button', { name: 'Delete document' }).click();
+  await page.getByText(/Document hidden, but its file could not be removed/).waitFor();
+  await page.getByRole('button', { name: 'Retry deletion' }).waitFor();
+  assert.equal((await context.request.get(origin + firstLink)).status(), 404, 'A pending deletion revokes direct access');
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Retry deletion' }).click();
+  await page.getByText('Document deleted.').waitFor();
+  assert.equal(documents.some(entry => entry.title === 'habitat-a'), false);
+  assert.equal([...documentFiles.keys()].some(path => path.includes('habitat-a')), false);
+  assert.equal(documents.some(entry => entry.title === 'habitat-b'), true, 'Sibling document remains');
+  const secondCard = page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'habitat-b' }) });
+  page.once('dialog', dialog => dialog.accept());
+  await secondCard.getByRole('button', { name: 'Delete document' }).click();
+  await page.getByText('Document deleted.').waitFor();
+  assert.equal([...documentFiles.keys()].some(path => path.includes('habitat-b')), false);
+  console.log('PASS: custom multi-file categories, validation, cancel/delete/retry, storage removal, and direct-link revocation');
   await visit('/account?mode=reset', 'Account');
   await page.getByText('Your reset link is active.', { exact: false }).waitFor();
   assert.equal((await page.goto(origin + '/admin/unknown')).status(), 404);
@@ -653,10 +754,14 @@ try {
   assert.equal(await page.getByRole('button', { name: /Compare highlights/ }).count(), 0);
   await page.getByRole('link', { name: 'View North Eight and its photos' }).click();
   await page.getByRole('img', { name: 'Buck at trail camera' }).waitFor();
+  await verifyBuckPhotoFits('admin preview');
   assert.equal(await page.locator('.digital-book-age').textContent(), '4 years old');
   assert.equal(await page.locator('.digital-book-heading h1').innerText(), 'North Eight 4 years old');
   assert.equal(await page.getByText('A familiar buck seen by the north trail.').count(), 0);
   assert.equal(await page.getByText('North trail camera, late summer').count(), 0);
+  await page.setViewportSize({ width: 320, height: 568 });
+  await verifyBuckPhotoFits('admin preview narrow phone');
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await auditMobile('digital-admin-preview');
   bookStatus = 'draft';
   await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
@@ -690,6 +795,7 @@ try {
   await visit(`/portal/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
   await page.getByRole('link', { name: /North Eight/ }).click();
   await page.getByRole('img', { name: 'Buck at trail camera' }).waitFor();
+  await verifyBuckPhotoFits('signed-in client');
   assert.equal(await page.getByText('A familiar buck seen by the north trail.').count(), 0);
   assert.equal(await page.getByText('North trail camera, late summer').count(), 0);
   await page.getByRole('button', { name: 'Next photo' }).click();
@@ -698,6 +804,7 @@ try {
   await page.keyboard.press('ArrowLeft');
   await page.getByText('Photo 1 of 3').waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
+  await verifyBuckPhotoFits('signed-in client phone');
   const photoViewer = page.locator('.digital-book-photo-viewer');
   await photoViewer.scrollIntoViewIfNeeded();
   const swipeBox = await photoViewer.boundingBox();
@@ -864,10 +971,26 @@ try {
   assert.equal((await context.request.get(`${origin}/book/${bookToken}/images/${excludedImageId}`)).status(), 404);
   assert.equal((await page.goto(`${origin}/book/${bookToken}/bucks/${secondBuckId}`)).status(), 200);
   await page.getByRole('heading', { name: 'South Nine', level: 1 }).waitFor();
+  await verifyBuckPhotoFits('public desktop');
   const buckNavigation = page.getByRole('navigation', { name: 'Browse bucks' });
   assert.ok(await buckNavigation.evaluate(element => element.getBoundingClientRect().bottom < document.querySelector('.digital-book-photo-viewer').getBoundingClientRect().top));
   await buckNavigation.getByRole('link', { name: 'Previous: North Eight' }).click();
   await page.getByRole('heading', { name: 'North Eight', level: 1 }).waitFor();
+  await verifyBuckPhotoFits('public next buck desktop');
+  for (const size of [{ width: 320, height: 568 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size);
+    await page.getByRole('navigation', { name: 'Browse bucks' }).getByRole('link', { name: 'Next: South Nine' }).click();
+    await page.getByRole('heading', { name: 'South Nine', level: 1 }).waitFor();
+    await verifyBuckPhotoFits(`public ${size.width}px next buck`);
+    await page.getByRole('navigation', { name: 'Browse bucks' }).getByRole('link', { name: 'Previous: North Eight' }).click();
+    await page.getByRole('heading', { name: 'North Eight', level: 1 }).waitFor();
+    await verifyBuckPhotoFits(`public ${size.width}px previous buck`);
+  }
+  publicImageBytes = await sharp({ create: { width: 180, height: 420, channels: 3, background: '#4a5b3d' } }).jpeg().toBuffer();
+  await page.reload();
+  await verifyBuckPhotoFits('public portrait phone');
+  publicImageBytes = testJpeg;
+  await page.setViewportSize({ width: 1440, height: 1000 });
   assert.equal(await page.getByRole('navigation', { name: 'Browse bucks' }).getByRole('link', { name: 'Next: South Nine' }).count(), 1);
   await login('admin');
   const twoBuckExport = await context.request.get(`${origin}/api/digital-buck/export/${bookId}`);

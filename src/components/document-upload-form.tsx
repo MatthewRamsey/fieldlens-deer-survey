@@ -23,6 +23,10 @@ export function DocumentUploadForm({
 }) {
   const [state, action, pending] = useActionState((state: PortalMutationState, form: FormData) => submitPortalUpload(uploadDocuments, state, form, "client-documents", "files"), initialState);
   const [fileCount, setFileCount] = useState(0);
+  const categorySuggestions = [...new Set([
+    "Camera survey report", "Map export", "Harvest plan",
+    ...client.documents.filter(document => !document.deletedAt).map(document => document.category),
+  ])];
 
   return (
     <form className="upload-form" action={action}>
@@ -31,11 +35,11 @@ export function DocumentUploadForm({
       <div className="form-grid">
         <label className="auth-field">
           <span>Document category</span>
-          <NativeSelect defaultValue="Camera survey report" name="category">
-            <option>Camera survey report</option>
-            <option>Map export</option>
-            <option>Harvest plan</option>
-          </NativeSelect>
+          <Input autoComplete="off" list="document-category-suggestions" maxLength={100} name="category"
+            placeholder="Example: Habitat assessment" required />
+          <datalist id="document-category-suggestions">
+            {categorySuggestions.map(category => <option key={category} value={category} />)}
+          </datalist>
         </label>
         <label className="auth-field">
           <span>Survey year</span>

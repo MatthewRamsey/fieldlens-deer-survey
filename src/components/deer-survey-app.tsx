@@ -13,10 +13,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { AdminShell, ClientShell } from "@/components/admin-shell";
 import { adminHref, adminSections, type AdminSection } from "@/lib/admin-navigation";
 import { clientHref, clientSections, type ClientSection } from "@/lib/client-navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { ClientManagement } from "@/components/client-management";
 import { DocumentUploadForm } from "@/components/document-upload-form";
 import { signOut } from "@/app/actions/auth";
+import { deletePortalDocument } from "@/app/actions/portal";
 import type { ManagedClient, ViewerContext } from "@/lib/portal-data";
 import type { Client, SurveyYear } from "@/lib/portal-types";
 
@@ -61,6 +62,9 @@ export function DeerSurveyApp({
       "",
   );
   const [selectedYear] = useState<YearFilter>(initialYear ?? accessibleClients.find(entry => entry.id === selectedClientId)?.surveyYears[0] ?? "Lifetime");
+  const [documentMessage, setDocumentMessage] = useState("");
+  const [documentError, setDocumentError] = useState("");
+  const [deletingDocument, startDocumentDeletion] = useTransition();
 
   const viewMode = preview ? "client" : viewer.role;
   const adminWorkspace = viewMode === "admin" && (section === "clients" || (section === "overview" && !accessibleClients.some(entry => entry.id === initialClientId)));
@@ -69,7 +73,7 @@ export function DeerSurveyApp({
   const adminYear = initialYear && adminYears.includes(initialYear) ? initialYear : "Lifetime";
   const adminStats = useMemo(() => {
     const inYear = (year: string) => adminYear === "Lifetime" || year === adminYear;
-    const documents = accessibleClients.flatMap(entry => entry.documents.filter(document => inYear(document.surveyYear)));
+    const documents = accessibleClients.flatMap(entry => entry.documents.filter(document => !document.deletedAt && inYear(document.surveyYear)));
     return {
       activeProperties: accessibleClients.length,
       publishedReports: documents.filter(document => document.status === "Published").length,
@@ -169,12 +173,25 @@ export function DeerSurveyApp({
     effectiveSelectedYear === "Lifetime" ? client.surveyYears[0] : effectiveSelectedYear;
 
   const documents = client.documents;
+  const deleteDocument = (entry: Client["documents"][number]) => {
+    if (!window.confirm(`Delete “${entry.title}”? The client will lose access to this document and its file will be permanently removed.`)) return;
+    setDocumentMessage(""); setDocumentError("");
+    startDocumentDeletion(async () => {
+      const result = await deletePortalDocument(client.id, entry.id);
+      if (result.error) setDocumentError(result.error);
+      else {
+        setDocumentMessage(result.success ?? "Document deleted.");
+        document.getElementById("admin-documents-heading")?.focus();
+      }
+      router.refresh();
+    });
+  };
   const visibleDocuments =
     effectiveSelectedYear === "Lifetime"
       ? documents.filter((document) =>
-          viewMode === "admin"
+          !document.deletedAt && (viewMode === "admin"
             ? true
-            : document.visibility === "client" && document.status === "Published",
+            : document.visibility === "client" && document.status === "Published"),
         )
       : documents.filter((document) => {
           const visibleToViewer =
@@ -182,8 +199,10 @@ export function DeerSurveyApp({
               ? true
               : document.visibility === "client" && document.status === "Published";
 
-          return visibleToViewer && document.surveyYear === effectiveSelectedYear;
+          return !document.deletedAt && visibleToViewer && document.surveyYear === effectiveSelectedYear;
         });
+  const pendingDocuments = viewMode === "admin" ? documents.filter(document => document.deletedAt &&
+    (effectiveSelectedYear === "Lifetime" || document.surveyYear === effectiveSelectedYear)) : [];
 
   const publishedReportCount = visibleDocuments.filter(document => document.status === "Published").length;
   const content = (
@@ -265,9 +284,11 @@ export function DeerSurveyApp({
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h3>Documents</h3>
+                      <h3 id="admin-documents-heading" tabIndex={-1}>Documents</h3>
                     </div>
                   </div>
+                  {documentMessage && <p role="status" className="digital-feedback">{documentMessage}</p>}
+                  {documentError && <p role="alert" className="digital-feedback error">{documentError}</p>}
 
                   <div className="asset-list">
                     {visibleDocuments.length ? (
@@ -299,6 +320,9 @@ export function DeerSurveyApp({
                             >
                               {document.status === "Published" ? "Open document" : "Preview draft"}
                             </a>
+                            <Button className="danger-chip" disabled={deletingDocument} variant="outline" onClick={() => deleteDocument(document)}>
+                              Delete document
+                            </Button>
                           </div>
                         </article>
                       ))
@@ -308,6 +332,12 @@ export function DeerSurveyApp({
                         <p>Upload a new client report or switch the archive year to review another season.</p>
                       </article>
                     )}
+                    {pendingDocuments.map(document => <article className="asset-card" key={document.id}>
+                      <h4>{document.title}</h4>
+                      <p>Pending deletion · {document.surveyYear} · {document.category}</p>
+                      <div className="asset-actions"><Button disabled={deletingDocument} variant="outline"
+                        onClick={() => deleteDocument(document)}>Retry deletion</Button></div>
+                    </article>)}
                   </div>
                 </section>
               </div>}

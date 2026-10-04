@@ -83,6 +83,7 @@ type ClientDocumentRow = {
   created_at: string;
   file_type: string;
   page_count: number | null;
+  deleted_at: string | null;
   visibility: "admin" | "client";
   status: "draft" | "published";
   notes: string;
@@ -253,7 +254,7 @@ export const getPortalAppState = cache(async (): Promise<PortalAppState> => {
 
   const { data: documents } = await supabase
     .from("client_documents")
-    .select("id, client_account_id, title, category, survey_year, created_at, file_type, page_count, visibility, status, notes")
+    .select("id, client_account_id, title, category, survey_year, created_at, file_type, page_count, visibility, status, notes, deleted_at")
     .in("client_account_id", accessibleClientAccountIds)
     .order("created_at", { ascending: false })
     .returns<ClientDocumentRow[]>();
@@ -286,6 +287,7 @@ export const getPortalAppState = cache(async (): Promise<PortalAppState> => {
           visibility: document.visibility,
           status: titleCaseStatus(document.status),
           notes: document.notes,
+          deletedAt: document.deleted_at,
         }),
       );
 
@@ -397,6 +399,7 @@ export async function getAccessibleDocument(clientSlug: string, surveyYear: stri
     .eq("id", documentId)
     .eq("client_account_id", account.id)
     .eq("survey_year", surveyYear)
+    .is("deleted_at", null)
     .maybeSingle<{
       id: string;
       client_account_id: string;

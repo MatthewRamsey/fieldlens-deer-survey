@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -64,6 +64,9 @@ export function DigitalBookReader({ book, buckId, embeddedHref, adminPreview = f
 }) {
   const router = useRouter();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [photoHeight, setPhotoHeight] = useState<number | null>(null);
+  const headingRef = useRef<HTMLDivElement>(null);
+  const photoRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const groups = groupBucksByAge(book.bucks);
   const orderedBucks = groups.flatMap(group => group.bucks);
@@ -76,6 +79,26 @@ export function DigitalBookReader({ book, buckId, embeddedHref, adminPreview = f
     const content = document.querySelector<HTMLElement>("#main-content");
     sessionStorage.setItem(scrollKey, JSON.stringify({ content: content?.scrollTop ?? null, window: window.scrollY, selectedBuckId }));
   };
+  useEffect(() => {
+    if (!buckId) return;
+    const fitPhoto = () => {
+      if (!photoRef.current) return;
+      setPhotoHeight(Math.max(64, window.innerHeight - photoRef.current.getBoundingClientRect().top - 12));
+    };
+    const alignPhoto = () => {
+      const heading = headingRef.current;
+      if (!heading) return;
+      const content = document.querySelector<HTMLElement>("#main-content");
+      if (content) content.scrollTo({ top: content.scrollTop + heading.getBoundingClientRect().top - content.getBoundingClientRect().top - 12, behavior: "instant" });
+      else window.scrollTo({ top: window.scrollY + heading.getBoundingClientRect().top - 12, behavior: "instant" });
+      heading.focus({ preventScroll: true });
+      window.requestAnimationFrame(fitPhoto);
+    };
+    const frame = window.requestAnimationFrame(alignPhoto);
+    const resize = () => window.requestAnimationFrame(alignPhoto);
+    window.addEventListener("resize", resize);
+    return () => { window.cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
+  }, [buckId]);
   useEffect(() => {
     if (buckId) return;
     const saved = sessionStorage.getItem(scrollKey);
@@ -107,7 +130,7 @@ export function DigitalBookReader({ book, buckId, embeddedHref, adminPreview = f
       <span>{book.propertyName} · {book.year}</span>
     </header>}
     {buck ? <>
-      <div className="digital-book-heading">
+      <div className="digital-book-heading" ref={headingRef} tabIndex={-1}>
         <Link href={href()} className="digital-book-back"><ArrowLeft size={17} /> All bucks</Link>
         <p className="eyebrow">Buck {index + 1} of {orderedBucks.length}</p>
         <h1>{buck.name} <span className="digital-book-age">{buckAgeLabel(buck.ageClass)}</span></h1>
@@ -137,7 +160,7 @@ export function DigitalBookReader({ book, buckId, embeddedHref, adminPreview = f
           }
           setTouchStart(null);
         }}>
-        <div className="digital-book-photo">
+        <div className="digital-book-photo" ref={photoRef} style={photoHeight === null ? undefined : { height: photoHeight }}>
           <ProgressivePhoto key={buck.images[photoIndex]?.id ?? buck.images[0].id}
             src={imageHref(buck.images[photoIndex]?.id ?? buck.images[0].id)}
             alt={buck.images[photoIndex]?.altText || `${buck.name}, photo ${photoIndex + 1}`} />

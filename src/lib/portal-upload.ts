@@ -13,6 +13,9 @@ export async function submitPortalUpload(
   bucket: "client-documents",
   field: "files",
 ): Promise<PortalMutationState> {
+  const category = String(form.get("category") ?? "").trim();
+  if (!category || category.length > 100 || /[\x00-\x1f\x7f]/.test(category))
+    return { error: "Enter a document category of 1–100 characters without control characters." };
   const supabase = createClient();
   const files = form.getAll(field).filter((value): value is File => value instanceof File && value.size > 0);
   if (!files.length) return { error: "Choose at least one file." };
