@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { createClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import type { Buck, BuckBook } from "@/lib/digital-buck-book";
+import type { AdminBuckGalleryEntry, Buck, BuckBook } from "@/lib/digital-buck-book";
 import { buckAgeGroups, buckAgeLabel, normalizeBuckAge } from "@/lib/digital-buck-age";
 import { buckDisplayName } from "@/lib/digital-buck-label";
 import {
@@ -33,6 +33,12 @@ const Label = (props: React.ComponentProps<"label">) => <label {...props} />;
 const acceptedPhotoTypes = ".jpg,.jpeg,.png,.webp,.heic,.heif,.dng,.cr2,.cr3,.nef,.arw,.raf,.orf,.rw2";
 type BatchFile = { key: string; file: File };
 type BatchResult = { key: string; fileName: string; buckId?: string; name?: string; imageId?: string; error?: string };
+type BatchDraft = { files: BatchFile[]; results: BatchResult[]; message: string };
+const batchDrafts = new Map<string, BatchDraft>();
+function saveBatchDraft(key: string, draft: BatchDraft) {
+  batchDrafts.set(key, draft);
+  window.dispatchEvent(new CustomEvent("buck-batch-draft", { detail: key }));
+}
 
 function validatePhoto(file: File) {
   if (file.size < 1 || file.size > 50 * 1024 * 1024) throw new Error(`${file.name}: Photos must be 50 MB or smaller.`);
@@ -89,8 +95,14 @@ async function uploadBuckPhotos(buckId: string, files: File[], onProgress: (valu
   return readyImageIds;
 }
 
-export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, origin }: {
-  book: BuckBook | null; clientSlug: string; propertyName: string; year: string; origin: string;
+function buckEditorHref(clientSlug: string, year: string, buckId: string, returnYear: string) {
+  const query = new URLSearchParams({ client: clientSlug, year, buck: buckId, returnYear });
+  return `/admin/digital-buck-book?${query}`;
+}
+
+export function DigitalBuckWorkspace({ book, gallery, focusedBuckId, returnYear, clientSlug, propertyName, year, origin }: {
+  book: BuckBook | null; gallery: AdminBuckGalleryEntry[]; focusedBuckId?: string; returnYear: string;
+  clientSlug: string; propertyName: string; year: string; origin: string;
 }) {
   const router = useRouter();
   const [addingBuck, setAddingBuck] = useState(false);
@@ -101,13 +113,29 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, start] = useTransition();
+  const draftKey = `${clientSlug}:${year}`;
+  useEffect(() => {
+    const restore = (event?: Event) => {
+      if (event instanceof CustomEvent && event.detail !== draftKey) return;
+      const draft = batchDrafts.get(draftKey);
+      if (!draft) return;
+      setAddingBuck(true);
+      setNewPhotos(draft.files);
+      setBatchResults(draft.results);
+      setMessage(draft.message);
+    };
+    window.addEventListener("buck-batch-draft", restore);
+    queueMicrotask(restore);
+    return () => window.removeEventListener("buck-batch-draft", restore);
+  }, [draftKey]);
   const selectedBucks = book?.bucks.filter(buck => buck.print_selected) ?? [];
   const missingHighlights = selectedBucks.filter(buck => !buck.images.some(image => image.status === "ready" && image.is_highlight));
   const missingAgeClasses = selectedBucks.filter(buck => !buck.age_class.trim());
   const failedPhotos = book?.bucks.reduce((count, buck) => count + buck.images.filter(image => image.status === "failed").length, 0) ?? 0;
-  const run = (work: () => Promise<unknown>, success: string) => {
+  const focusedIndex = gallery.findIndex(item => item.id === focusedBuckId);
+  const run = (work: () => Promise<unknown>, success: string, onSuccess?: () => void) => {
     setError(""); setMessage("");
-    start(async () => { try { await work(); setMessage(success); router.refresh(); } catch (cause) { setError(actionError(cause)); } });
+    start(async () => { try { await work(); setMessage(success); if (onSuccess) onSuccess(); else router.refresh(); } catch (cause) { setError(actionError(cause)); } });
   };
   const addBucks = (bookId: string) => {
     setError(""); setMessage("");
@@ -138,15 +166,17 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
       }
       setNewPhotos(failed);
       setNewUploadState("");
-      setMessage(`${newPhotos.length - failed.length} of ${newPhotos.length} bucks ready.${failed.length ? " Retry the failed files below." : ""}`);
-      router.refresh();
+      const outcome = `${newPhotos.length - failed.length} of ${newPhotos.length} bucks ready.${failed.length ? " Retry the failed files below." : ""}`;
+      saveBatchDraft(draftKey, { files: failed, results, message: outcome });
+      setMessage(outcome);
+      if (results.some(result => result.buckId && !result.error)) router.refresh();
     });
   };
   return <Card className="workspace-card digital-book-workspace">
     <div className="digital-workspace-head"><div><p className="eyebrow">{propertyName} · {year}</p><h2>Digital Buck Book</h2>
       <p>Choose the bucks for print, add their photos, then publish the same book online.</p></div>
       {book && <div className="digital-workspace-head-actions"><span className="digital-status">{book.status === "published" ? "Published" : "Draft"}</span>
-        <Button aria-controls="add-buck-form" aria-expanded={addingBuck} disabled={busy} onClick={() => setAddingBuck(open => !open)} type="button">
+        <Button aria-controls="add-buck-form" aria-expanded={addingBuck} disabled={busy} onClick={() => { if (addingBuck) batchDrafts.delete(draftKey); setAddingBuck(open => !open); }} type="button">
           <Plus aria-hidden="true" /> {addingBuck ? "Close form" : "Add bucks"}
         </Button></div>}
     </div>
@@ -168,20 +198,20 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
         </div>
         <div className="digital-add-buck-photos"><Label htmlFor="new-buck-photos">Highlight photos</Label>
           <div className="portal-file-picker"><Input className="portal-file-input" id="new-buck-photos" type="file" multiple accept={acceptedPhotoTypes}
-            aria-label="Choose highlight photos for new bucks" disabled={busy} onChange={event => { setNewPhotos(Array.from(event.currentTarget.files ?? []).map(file => ({ key: crypto.randomUUID(), file }))); setBatchResults([]); event.currentTarget.value = ""; }} />
+            aria-label="Choose highlight photos for new bucks" disabled={busy} onChange={event => { const files = Array.from(event.currentTarget.files ?? []).map(file => ({ key: crypto.randomUUID(), file })); setNewPhotos(files); setBatchResults([]); saveBatchDraft(draftKey, { files, results: [], message: "" }); event.currentTarget.value = ""; }} />
             <Label className="portal-file-trigger" htmlFor="new-buck-photos"><Images aria-hidden="true" /> Choose highlight photos</Label>
             <span className="portal-file-help">JPEG, PNG, WebP, HEIC, or camera RAW · up to 50 MB each</span></div>
           {newPhotos.length > 0 && <><p>{newPhotos.length} photo{newPhotos.length === 1 ? "" : "s"} selected. Expected IDs: {book.buckPrefix}{book.nextBuckNumber}–{book.buckPrefix}{book.nextBuckNumber + newPhotos.length - 1}. Final IDs are confirmed during upload.</p>
-            <ul className="digital-batch-files">{newPhotos.map(item => <li key={item.key}><span>{item.file.name}</span><Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => setNewPhotos(files => files.filter(file => file.key !== item.key))} aria-label={`Remove ${item.file.name} from batch`}>Remove</Button></li>)}</ul></>}
+            <ul className="digital-batch-files">{newPhotos.map(item => <li key={item.key}><span>{item.file.name}</span><Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { const next = newPhotos.filter(file => file.key !== item.key); setNewPhotos(next); saveBatchDraft(draftKey, { files: next, results: batchResults, message }); }} aria-label={`Remove ${item.file.name} from batch`}>Remove</Button></li>)}</ul></>}
         </div>
         {newUploadState && <p role="status">{newUploadState}</p>}
         {batchResults.length > 0 && <div role="status"><strong>Batch results</strong><ul className="digital-batch-results">{batchResults.map(result => <li key={result.key}>
           {result.imageId && <Image src={`/api/digital-buck/admin-image/${result.imageId}`} alt="" width={72} height={54} unoptimized />}
           <span><strong>{result.name ?? result.fileName}</strong><br />{result.error ?? `${result.fileName} ready`}</span>
-          {result.buckId && <a href={`#buck-${result.buckId}`}>Edit buck</a>}
+          {result.buckId && <Link href={buckEditorHref(clientSlug, year, result.buckId, year)} onClick={() => batchDrafts.delete(draftKey)}>Edit buck</Link>}
         </li>)}</ul></div>}
         <div className="digital-editor-actions"><Button disabled={busy || !newPhotos.length} type="submit">{busy ? "Uploading bucks…" : `Add ${newPhotos.length} buck${newPhotos.length === 1 ? "" : "s"}`}</Button>
-          <Button disabled={busy} variant="outline" type="button" onClick={() => setAddingBuck(false)}>Cancel</Button></div>
+          <Button disabled={busy} variant="outline" type="button" onClick={() => { batchDrafts.delete(draftKey); setAddingBuck(false); }}>Cancel</Button></div>
       </form>}
       <div className="digital-book-toolbar">
         <div><strong>{selectedBucks.length} selected for print</strong><p>Book order sets the buck sequence in print and the digital gallery. Photos appear in upload order.</p></div>
@@ -205,11 +235,73 @@ export function DigitalBuckWorkspace({ book, clientSlug, propertyName, year, ori
           {missingAgeClasses.map(buck => <li key={`age-${buck.id}`}>{buckDisplayName(buck.name, buck.nickname)} has no age class and will appear under Unclassified.</li>)}
           {failedPhotos > 0 && <li>{failedPhotos} photo{failedPhotos === 1 ? "" : "s"} could not be processed. Remove or retry them.</li>}
         </ul></div>}
-      <div className="digital-buck-list">{book.bucks.map((buck, index) => <BuckEditor key={buck.id} buck={buck} index={index} book={book}
-        busy={busy} setError={setError} run={run} />)}</div>
-      {book.bucks.length === 0 && <p className="digital-empty">Add your first buck to start curating this book.</p>}
     </>}
+    {focusedBuckId && book ? <section className="digital-focused-buck">
+      <div className="digital-focused-nav"><Button variant="outline" nativeButton={false} render={<Link href={`/admin/digital-buck-book?${new URLSearchParams({ client: clientSlug, year: returnYear })}`} />}>
+        ← All bucks
+      </Button>
+      <div className="digital-focused-neighbors">
+        {focusedIndex > 0 && <Button variant="outline" nativeButton={false} render={<Link href={buckEditorHref(clientSlug, gallery[focusedIndex - 1].year, gallery[focusedIndex - 1].id, returnYear)} />}>Previous buck</Button>}
+        {focusedIndex >= 0 && focusedIndex < gallery.length - 1 && <Button variant="outline" nativeButton={false} render={<Link href={buckEditorHref(clientSlug, gallery[focusedIndex + 1].year, gallery[focusedIndex + 1].id, returnYear)} />}>Next buck</Button>}
+      </div></div>
+      {book.bucks.filter(buck => buck.id === focusedBuckId).map(buck => <BuckEditor key={buck.id} buck={buck}
+        index={book.bucks.findIndex(item => item.id === buck.id)} book={book} busy={busy} setError={setError} run={run}
+        onRemoved={() => router.replace(`/admin/digital-buck-book?${new URLSearchParams({ client: clientSlug, year: returnYear })}`)} />)}
+    </section> : <AdminBuckGallery gallery={gallery} clientSlug={clientSlug} returnYear={returnYear} />}
   </Card>;
+}
+
+function AdminBuckGallery({ gallery, clientSlug, returnYear }: {
+  gallery: AdminBuckGalleryEntry[]; clientSlug: string; returnYear: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [age, setAge] = useState("");
+  const [selection, setSelection] = useState("all");
+  useEffect(() => {
+    const saved = sessionStorage.getItem(`buck-gallery-scroll:${clientSlug}`);
+    if (!saved) return;
+    sessionStorage.removeItem(`buck-gallery-scroll:${clientSlug}`);
+    const { top, buckId } = JSON.parse(saved) as { top: number; buckId: string };
+    const scrollView = document.querySelector<HTMLElement>(".portal-scroll");
+    if (scrollView) requestAnimationFrame(() => {
+      scrollView.scrollTop = top;
+      document.querySelector<HTMLElement>(`[data-buck-id="${buckId}"]`)?.focus({ preventScroll: true });
+    });
+  }, [clientSlug]);
+  const filtered = gallery.filter(buck =>
+    buckDisplayName(buck.name, buck.nickname).toLowerCase().includes(query.trim().toLowerCase()) &&
+    (!age || buck.ageClass === age) &&
+    (selection === "all" || buck.printSelected === (selection === "selected")));
+  const years = [...new Set(filtered.map(buck => buck.year))];
+  return <section className="admin-buck-gallery" aria-label="All property bucks">
+    <div className="admin-buck-gallery-head"><div><p className="eyebrow">Property gallery</p><h3>All bucks</h3>
+      <p>{gallery.length} buck{gallery.length === 1 ? "" : "s"} across all survey years. Select one to edit its details and photos.</p></div></div>
+    {gallery.length > 0 && <div className="admin-buck-gallery-filters">
+      <label>Search bucks<Input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search ID or nickname" /></label>
+      <label>Age group<NativeSelect value={age} onChange={event => setAge(event.target.value)}><option value="">All ages</option>
+        {buckAgeGroups.map(value => <option key={value} value={value}>{buckAgeLabel(value)}</option>)}</NativeSelect></label>
+      <label>Book status<NativeSelect value={selection} onChange={event => setSelection(event.target.value)}>
+        <option value="all">All bucks</option><option value="selected">In book</option><option value="unselected">Not selected</option>
+      </NativeSelect></label>
+    </div>}
+    {years.map(year => <section className="admin-buck-year" key={year} aria-label={`${year} survey year`}>
+      <div className="admin-buck-year-head"><h4>{year}</h4><span>{filtered.filter(buck => buck.year === year).length} bucks</span></div>
+      <div className="admin-buck-grid">{filtered.filter(buck => buck.year === year).map(buck => <Link className="admin-buck-card" key={buck.id}
+        data-buck-id={buck.id}
+        href={buckEditorHref(clientSlug, buck.year, buck.id, returnYear)}
+        onClick={() => { batchDrafts.delete(`${clientSlug}:${returnYear}`); const scrollView = document.querySelector<HTMLElement>(".portal-scroll");
+          if (scrollView) sessionStorage.setItem(`buck-gallery-scroll:${clientSlug}`, JSON.stringify({ top: scrollView.scrollTop, buckId: buck.id })); }}>
+        {buck.highlightImageId ? <Image src={`/api/digital-buck/admin-image/${buck.highlightImageId}?size=gallery`}
+          alt="" width={320} height={240} unoptimized loading="lazy" />
+          : <div className="admin-buck-no-image">No highlight photo</div>}
+        <div className="admin-buck-card-details"><strong>{buckDisplayName(buck.name, buck.nickname)}</strong>
+          <span>{buck.ageClass ? buckAgeLabel(buck.ageClass) : "Age unassigned"}</span>
+          <span>{buck.printSelected ? "In print and digital" : "Not selected"}</span></div>
+      </Link>)}</div>
+    </section>)}
+    {gallery.length === 0 && <p className="digital-empty">No bucks added to this property yet. Create a book and add bucks above.</p>}
+    {gallery.length > 0 && filtered.length === 0 && <p className="digital-empty">No bucks match these filters.</p>}
+  </section>;
 }
 
 function BookQrControls({ book, origin, propertyName }: { book: BuckBook; origin: string; propertyName: string }) {
@@ -242,10 +334,11 @@ function BookQrControls({ book, origin, propertyName }: { book: BuckBook; origin
   </section>;
 }
 
-function BuckEditor({ buck, index, book, busy, setError, run }: {
+function BuckEditor({ buck, index, book, busy, setError, run, onRemoved }: {
   buck: Buck; index: number; book: BuckBook; busy: boolean;
   setError: (value: string) => void;
-  run: (work: () => Promise<unknown>, success: string) => void;
+  run: (work: () => Promise<unknown>, success: string, onSuccess?: () => void) => void;
+  onRemoved: () => void;
 }) {
   const router = useRouter();
   const [nickname, setNickname] = useState(buck.nickname ?? "");
@@ -281,7 +374,7 @@ function BuckEditor({ buck, index, book, busy, setError, run }: {
         const warning = book.status === "published" && buck.print_selected
           ? `Remove ${buck.name} from the published gallery? Existing direct links to this buck will stop working.`
           : `Remove ${buck.name} and its photos?`;
-        if (window.confirm(warning)) run(() => removeDigitalBuck(buck.id), "Buck removed.");
+        if (window.confirm(warning)) run(() => removeDigitalBuck(buck.id), "Buck removed.", onRemoved);
       }}>Remove buck</Button>
     </div>
     <div className="digital-image-section"><div><h4>Photos</h4><p>Add one or more photos of this buck. Select another ready photo to change the highlight.</p></div>

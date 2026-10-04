@@ -2782,6 +2782,27 @@ body.viewer-open {
 .digital-batch-results li a { margin-left: auto; white-space: nowrap; text-decoration: underline; }
 .digital-buck-editor { scroll-margin-top: 20px; }
 .digital-buck-list { display: grid; gap: 20px; }
+.digital-focused-buck { display: grid; justify-items: start; gap: 16px; }
+.digital-focused-nav { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; width: 100%; }
+.digital-focused-neighbors { display: flex; flex-wrap: wrap; gap: 10px; }
+.digital-focused-buck > .digital-buck-editor { width: 100%; }
+.admin-buck-gallery { display: grid; gap: 22px; min-width: 0; border-top: 1px solid var(--border); padding-top: 24px; }
+.admin-buck-gallery-head h3 { font-family: var(--font-display); font-size: clamp(25px, 3vw, 34px); }
+.admin-buck-gallery-head p:last-child { color: var(--muted-foreground); }
+.admin-buck-gallery-filters { display: grid; grid-template-columns: minmax(200px, 2fr) repeat(2, minmax(150px, 1fr)); gap: 12px; }
+.admin-buck-gallery-filters label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
+.admin-buck-year { display: grid; gap: 14px; }
+.admin-buck-year-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.admin-buck-year-head h4 { font-family: var(--font-display); font-size: 25px; }
+.admin-buck-year-head span { color: var(--muted-foreground); font-size: 13px; }
+.admin-buck-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.admin-buck-card { display: block; overflow: hidden; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.admin-buck-card:hover, .admin-buck-card:focus-visible { border-color: var(--primary); box-shadow: var(--shadow); }
+.admin-buck-card > img, .admin-buck-no-image { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: contain; background: #1d241e; }
+.admin-buck-no-image { display: grid; place-items: center; padding: 12px; color: #eef1e9; text-align: center; }
+.admin-buck-card-details { display: grid; gap: 3px; padding: 12px; }
+.admin-buck-card-details strong { font-family: var(--font-display); font-size: 19px; overflow-wrap: anywhere; }
+.admin-buck-card-details span { color: var(--muted-foreground); font-size: 12px; }
 .digital-buck-editor { padding: 24px; display: grid; gap: 20px; border-top: 3px solid var(--primary); }
 .digital-buck-editor-head h3 { font-size: 25px; }
 .digital-buck-editor-head span { font-size: 13px; color: var(--muted-foreground); }
@@ -2854,5 +2875,7 @@ body.viewer-open {
 .digital-book-buck-nav { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
 .digital-book-buck-nav a:last-child { margin-left: auto; }
 @media (max-width: 1100px) { .digital-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .admin-buck-grid, .admin-buck-gallery-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .admin-buck-gallery-filters label:first-child { grid-column: 1 / -1; } }
 @media (max-width: 900px) { .digital-buck-fields, .digital-book-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .digital-book-reader { padding-inline: 0; } .digital-book-header, .digital-book-heading, .digital-age-jump, .digital-age-groups, .digital-book-buck-nav { margin-inline: 16px; } .digital-book-grid, .digital-image-grid { grid-template-columns: minmax(0, 1fr); } .digital-book-photo { border-radius: 0; min-height: 220px; } .digital-add-buck-fields, .digital-buck-fields { grid-template-columns: 1fr; } .digital-buck-editor { padding: 16px; } .digital-book-toolbar, .digital-toolbar-actions { align-items: stretch; } .digital-toolbar-actions button, .digital-toolbar-actions a { width: 100%; } .digital-qr { grid-template-columns: 1fr; } .digital-qr-actions > * { width: 100%; } }
+@media (max-width: 600px) { .admin-buck-grid, .admin-buck-gallery-filters { grid-template-columns: minmax(0, 1fr); } .admin-buck-gallery-filters label:first-child { grid-column: auto; } }

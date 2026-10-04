@@ -5,7 +5,7 @@ import { getPortalAppState } from "@/lib/portal-data";
 import { getRequestOrigin } from "@/lib/request-origin";
 import { AdminShell } from "@/components/admin-shell";
 import { DigitalBuckWorkspace } from "@/components/digital-buck-workspace";
-import { getAdminBook } from "@/lib/digital-buck-book";
+import { getAdminBook, getAdminBuckGallery } from "@/lib/digital-buck-book";
 import { createClient } from "@/lib/supabase/server";
 import { AdminUserManagement, type ManagedUser } from "@/components/admin-user-management";
 
@@ -13,13 +13,13 @@ export const maxDuration = 300;
 
 export default async function AdminPage({ params, searchParams }: {
   params: Promise<{ section: string }>;
-  searchParams: Promise<{ client?: string; year?: string }>;
+  searchParams: Promise<{ client?: string; year?: string; buck?: string; returnYear?: string }>;
 }) {
   const { section } = await params;
   const feature = adminSections.find(item => item.id === section && item.id !== "overview");
   if (!feature) notFound();
   const state = await getPortalAppState();
-  const { client, year } = await searchParams;
+  const { client, year, buck, returnYear } = await searchParams;
   if (!state.viewer) redirect(`/?next=${encodeURIComponent(adminHref(feature.href, client, year))}`);
   if (state.viewer.role !== "admin") redirect("/");
   if (feature.id === "users") {
@@ -45,7 +45,10 @@ export default async function AdminPage({ params, searchParams }: {
   if (feature.id === "digital-buck-book") {
     const selected = state.clients.find(item => item.id === client) ?? state.clients[0];
     const selectedYear = year && /^\d{4}$/.test(year) ? year : String(new Date().getFullYear());
-    const book = selected ? await getAdminBook(selected.id, selectedYear) : null;
+    const [book, gallery] = selected ? await Promise.all([
+      getAdminBook(selected.id, selectedYear), getAdminBuckGallery(selected.id),
+    ]) : [null, []];
+    if (buck && !book?.bucks.some(item => item.id === buck)) notFound();
     return <AdminShell viewer={state.viewer} clients={state.clients} section={feature.id}
       clientId={selected?.id} year={selectedYear}>
       <section className="topbar admin-topbar"><div className="admin-topbar-body"><div className="admin-topbar-copy">
@@ -57,7 +60,8 @@ export default async function AdminPage({ params, searchParams }: {
           onChange={undefined}>{[...new Set([selectedYear, ...(selected?.surveyYears ?? [])])].map(value => <option key={value} value={value}>{value} survey year</option>)}</select></label>
         <button className="ghost-chip" type="submit">View</button>
       </form></div></section>
-      {selected ? <DigitalBuckWorkspace key={`${selected.id}:${selectedYear}`} book={book} clientSlug={selected.id}
+      {selected ? <DigitalBuckWorkspace key={`${selected.id}:${selectedYear}:${buck ?? "gallery"}`} book={book} gallery={gallery}
+        focusedBuckId={buck} returnYear={returnYear && /^\d{4}$/.test(returnYear) ? returnYear : selectedYear} clientSlug={selected.id}
         propertyName={selected.propertyName} year={selectedYear} origin={await getRequestOrigin()} />
         : <p>Add a client property before creating a buck book.</p>}
     </AdminShell>;

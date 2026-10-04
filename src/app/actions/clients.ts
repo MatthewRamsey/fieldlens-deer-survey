@@ -110,6 +110,12 @@ export async function createClientAccount(
     return details;
   }
 
+  const enteredPrefix = getField(formData, "buck_prefix");
+  if (enteredPrefix && !/^[A-Za-z0-9]{1,12}$/.test(enteredPrefix)) {
+    return { error: "Buck prefix must contain 1–12 letters or numbers, without spaces." };
+  }
+  const buckPrefix = enteredPrefix ? enteredPrefix.toUpperCase() : null;
+
   const session = await getAdminSession();
 
   if ("error" in session) {
@@ -126,6 +132,7 @@ export async function createClientAccount(
     property_name: details.propertyName,
     county: details.county,
     acreage: details.acreage,
+    buck_prefix: buckPrefix,
   });
 
   if (error?.code === "23505") {
@@ -137,6 +144,7 @@ export async function createClientAccount(
       property_name: details.propertyName,
       county: details.county,
       acreage: details.acreage,
+      buck_prefix: buckPrefix,
     }));
   }
 

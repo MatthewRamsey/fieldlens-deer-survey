@@ -182,7 +182,6 @@ export async function discardUnfinishedDigitalBuckImage(imageId: string, allowPe
   ]);
   const cleanupError = removals.find(result => result.error)?.error;
   if (cleanupError) throw new Error(`The unfinished photo was removed, but its uploaded file needs cleanup: ${cleanupError.message}`);
-  refresh();
 }
 
 export async function setDigitalBuckHighlight(imageId: string) {
@@ -268,7 +267,6 @@ export async function processDigitalBuckImage(imageId: string) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Image conversion failed.";
     await supabase.from("digital_buck_images").update({ status: "failed", error_message: message.slice(0, 300) }).eq("id", imageId);
-    refresh();
     return { error: `Could not process ${image.original_name}: ${message}` };
   }
 }

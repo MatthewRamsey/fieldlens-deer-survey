@@ -259,6 +259,15 @@ const backend = createServer(async (req, res) => {
     for (let i = digitalImages.length - 1; i >= 0; i--) if (digitalImages[i].buck_id === id) digitalImages.splice(i, 1);
     send(buck ? { id: buck.id } : null); return;
   }
+  if (table === 'client_accounts' && req.method === 'POST') {
+    let body = ''; for await (const chunk of req) body += chunk;
+    const entry = JSON.parse(body);
+    if (entry.buck_prefix && !/^[A-Z0-9]{1,12}$/.test(entry.buck_prefix)) { res.statusCode = 400; send({ message: 'Invalid buck prefix' }); return; }
+    const derived = entry.property_name.split(/[^A-Za-z]+/).filter(Boolean).map(word => word[0].toUpperCase()).join('');
+    accounts.push({ ...entry, buck_prefix: entry.buck_prefix || derived, buck_next_number: 1, is_active: true });
+    res.statusCode = 201; send([]); return;
+  }
+  if (table === 'client_memberships' && req.method === 'POST') { res.statusCode = 201; send([]); return; }
   const tables = {
     profiles: [...['admin', 'superadmin', 'client', 'empty'].map(id => ({ id, email: `${id}@example.test`, full_name: id === 'superadmin' ? 'Super Admin' : id === 'client' ? 'Client User' : 'Test Manager', role: id === 'client' ? 'client' : 'admin', default_client_account_id: accounts[0].id })),
       { id: managedUserId, email: 'managedclient@example.test', full_name: 'Managed Client', role: 'client', default_client_account_id: accounts[0].id }],
@@ -653,6 +662,10 @@ try {
   for (const section of ['galleries','camera-surveys','buck-book']) assert.equal((await page.goto(origin + '/admin/' + section)).status(), 404);
   console.log('PASS: query fallbacks, lifetime archive, document links, reset mode, and retired routes');
   await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
+  assert.equal(await page.locator('.digital-buck-editor').count(), 0, 'Gallery does not render every editor');
+  assert.equal(await page.locator('.admin-buck-grid').first().evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length), 4);
+  await page.locator('.admin-buck-card').filter({ hasText: 'North Eight' }).click();
+  await page.getByRole('button', { name: 'Save buck' }).waitFor();
   await page.getByRole('heading', { name: 'North Eight' }).waitFor();
   const photoGrid = page.locator('.digital-buck-editor').first().locator('.digital-image-grid');
   assert.equal(await photoGrid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length), 4,
@@ -815,7 +828,7 @@ try {
   await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await page.getByText('Photo 2 of 3').waitFor();
   await auditMobile('digital-client-detail');
-  await page.getByRole('link', { name: 'All bucks' }).click();
+  await page.getByRole('link', { name: /All bucks/ }).click();
   await page.getByRole('heading', { name: '4 years old', level: 2 }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Show book QR code' }).count(), 0);
   assert.equal(await page.getByRole('link', { name: 'Download book QR' }).count(), 0);
@@ -872,6 +885,7 @@ try {
   assert.equal((await context.request.get(`${origin}/book/${bookToken}/images/55555555-5555-4555-8555-555555555555`)).status(), 404);
   assert.equal((await context.request.get(`${origin}/book/66666666-6666-4666-8666-666666666666/bucks/${buckId}`)).status(), 404);
   await auditMobile('digital-public-detail');
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await page.locator('.digital-book-photo-viewer').focus();
   await page.keyboard.press('Escape');
   await page.getByRole('heading', { name: 'north property', level: 1 }).waitFor();
@@ -1043,7 +1057,7 @@ try {
   await page.locator(`#buck-${unknownAgeBuckId}`).getByRole('link').click();
   await page.getByRole('heading', { name: 'Unknown Age', level: 1 }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Next photo' }).count(), 0);
-  await page.getByRole('link', { name: 'All bucks' }).click();
+  await page.getByRole('link', { name: /All bucks/ }).click();
   await page.waitForURL(`${origin}/book/${bookToken}`);
   await page.waitForFunction(expected => Math.abs(window.scrollY - expected) < 40, previousScroll);
   await page.waitForFunction(id => document.activeElement === document.querySelector(`#buck-${id} a`), unknownAgeBuckId);
@@ -1059,19 +1073,20 @@ try {
   }
   console.log('PASS: whole-year and unclassified age groups, gallery jump, single-photo viewer, scroll return, mobile');
   await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
+  await page.locator('.admin-buck-card').filter({ hasText: 'South Nine' }).click();
   page.once('dialog', dialog => dialog.accept());
-  await page.locator('.digital-buck-editor').filter({ has: page.getByRole('heading', { name: 'South Nine' }) })
-    .getByRole('button', { name: 'Remove buck' }).click();
-  await page.getByText('Buck removed.', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Remove buck' }).click();
+  await page.waitForURL(`**/admin/digital-buck-book?client=north&year=${year}`);
+  await page.locator('.admin-buck-card').filter({ hasText: 'South Nine' }).waitFor({ state: 'detached' });
   assert.equal((await context.request.get(`${origin}/book/${bookToken}/bucks/${secondBuckId}`)).status(), 404);
   assert.equal((await context.request.get(`${origin}/book/${bookToken}/images/${secondImageId}`)).status(), 404);
   const afterRemoval = await page.goto(`${origin}/book/${bookToken}`);
   assert.equal(afterRemoval.status(), 200);
   assert.deepEqual(await page.locator('.digital-book-card h3').allTextContents(), ['North Eight']);
   await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
+  await page.locator('.admin-buck-card').filter({ hasText: 'North Eight' }).click();
   page.once('dialog', dialog => dialog.accept());
-  await page.locator('.digital-buck-editor').filter({ has: page.getByRole('heading', { name: 'North Eight' }) })
-    .getByRole('button', { name: 'Remove buck' }).click();
+  await page.getByRole('button', { name: 'Remove buck' }).click();
   await page.getByRole('alert').getByText('Unpublish the book before removing its last selected buck.').waitFor();
   console.log('PASS: warned published-buck removal revokes its old direct link and image; book QR stays valid');
   const supporting = digitalImages.find(image => image.original_name === 'additional.jpg');
@@ -1093,8 +1108,24 @@ try {
     extraImages.push({ id: fixture.image, buck_id: fixture.buck, original_name: `${fixture.name}.jpg`, original_type: 'image/jpeg', original_path: path, web_path: `${fixture.id}/${fixture.buck}/${fixture.image}/web.jpg`, print_path: `${fixture.id}/${fixture.buck}/${fixture.image}/print.jpg`, byte_size: testJpeg.length, status: 'ready', error_message: null, is_highlight: true, display_order: 0, alt_text: fixture.name, caption: '' });
     originals.set(path, testJpeg);
   }
+  const noHighlightId = '90909090-9090-4090-8090-909090909090';
+  extraBucks.push({ id: noHighlightId, book_id: bookCases[1].id, name: 'North Unselected', nickname: '', age_class: '2', print_selected: false, display_order: 1 });
   const destinations = new Set([`${origin}/book/${bookToken}/qr`]);
   await login('admin');
+  await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
+  assert.equal(await page.locator('.admin-buck-year').count(), 2);
+  assert.equal(await page.locator('.admin-buck-card').count(), digitalBucks.length + extraBucks.filter(buck => buck.book_id === bookCases[1].id).length);
+  assert.equal(await page.getByText('South Eleven', { exact: true }).count(), 0, 'Gallery is scoped to the chosen property');
+  assert.equal(await page.locator('.admin-buck-card').filter({ hasText: 'North Unselected' }).getByText('No highlight photo').count(), 1);
+  await auditMobile('admin-buck-gallery');
+  await page.locator('.admin-buck-card').filter({ hasText: 'North Seven' }).click();
+  await page.getByRole('heading', { name: 'North Seven' }).waitFor();
+  assert.match(page.url(), new RegExp(`year=${older}.*buck=${bookCases[1].buck}`));
+  await page.locator('.digital-focused-nav').getByText('All bucks').click();
+  await page.locator('.admin-buck-year').first().waitFor();
+  assert.match(page.url(), new RegExp(`year=${year}`));
+  assert.equal((await page.goto(`${origin}/admin/digital-buck-book?client=north&year=${year}&buck=${bookCases[0].buck}`)).status(), 404);
+  console.log('PASS: all-years property gallery, cross-year focused editing, missing highlight, and foreign-buck guard');
   for (const fixture of bookCases) {
     const exported = await context.request.get(`${origin}/api/digital-buck/export/${fixture.id}`);
     assert.equal(exported.status(), 200);
@@ -1191,11 +1222,12 @@ try {
   await addBuckForm.locator('.digital-batch-results').scrollIntoViewIfNeeded();
   await page.screenshot({ path: '/tmp/upland-sidebar-qa/digital-bulk-results-390.png' });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole('heading', { name: 'NP2', exact: true }).waitFor();
-  await page.getByRole('heading', { name: 'NP3', exact: true }).waitFor();
+  await page.locator('.admin-buck-card').filter({ hasText: 'NP2' }).waitFor();
+  await page.locator('.admin-buck-card').filter({ hasText: 'NP3' }).waitFor();
   assert.deepEqual(digitalBucks.slice(-2).map(buck => buck.name), ['NP2', 'NP3']);
   assert.deepEqual(digitalBucks.slice(-2).map(buck => buck.age_class), ['5', '5']);
   assert.ok(digitalImages.some(image => image.buck_id === digitalBucks.at(-2).id && image.original_name === 'east-eleven.jpg' && image.status === 'ready' && image.is_highlight));
+  await page.locator('.admin-buck-card').filter({ hasText: 'NP2' }).click();
   const newBuck = page.locator('.digital-buck-editor').filter({ has: page.getByRole('heading', { name: 'NP2', exact: true }) });
   await newBuck.getByLabel('Nickname (optional)').fill('Big Boy');
   await newBuck.getByLabel('Age group').selectOption('4');
@@ -1219,6 +1251,8 @@ try {
   assert.equal(renamedEntry.buckName, 'NP2 (Big Boy)');
   assert.equal(renamedEntry.nickname, 'Big Boy');
   assert.equal('fieldObservations' in renamedEntry, false);
+  await page.locator('.digital-focused-nav').getByText('All bucks').click();
+  await page.getByRole('button', { name: 'Add bucks', exact: true }).click();
   await addBuckForm.locator('input[type="file"]').setInputFiles({ name: 'retry-once.jpg', mimeType: 'image/jpeg', buffer: testJpeg });
   await addBuckForm.getByRole('button', { name: 'Add 1 buck' }).click();
   await page.getByText('0 of 1 bucks ready. Retry the failed files below.').waitFor();
@@ -1269,6 +1303,7 @@ try {
     assert.ok(largeJpeg.length > 40 * 1024 * 1024 && largeJpeg.length < 50 * 1024 * 1024, `Expected near-limit JPEG, got ${largeJpeg.length} bytes`);
     await login('admin');
     await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
+    await page.locator('.admin-buck-card').filter({ hasText: 'North Eight' }).click();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator(`[id="upload-${buckId}"]`).setInputFiles({ name: 'large-qa.jpg', mimeType: 'image/jpeg', buffer: largeJpeg });
     await page.getByText('large-qa.jpg ready').waitFor({ timeout: 180000 });
@@ -1296,6 +1331,7 @@ try {
     assert.ok(largeWebp.length > 30 * 1024 * 1024 && largeWebp.length < 50 * 1024 * 1024);
     await login('admin');
     await visit(`/admin/digital-buck-book?client=north&year=${year}`, 'Digital Buck Book');
+    await page.locator('.admin-buck-card').filter({ hasText: 'North Eight' }).click();
     await page.locator(`[id="upload-${buckId}"]`).setInputFiles({ name: 'rendition-limit.webp', mimeType: 'image/webp', buffer: largeWebp });
     await page.getByText('rendition-limit.webp ready').waitFor({ timeout: 240000 });
     const uploaded = digitalImages.find(image => image.original_name === 'rendition-limit.webp');
@@ -1310,5 +1346,18 @@ try {
     assert.deepEqual(errors, []);
     console.log(`PASS: ${Math.round(largeWebp.length / 1024 / 1024)} MiB WebP generated a full-resolution ${Math.round(print.length / 1024 / 1024)} MiB print JPEG below the Storage limit`);
   }
+  await login('admin');
+  await visit('/admin/clients', 'Clients');
+  await page.getByRole('button', { name: 'Add client', exact: true }).click();
+  const createClientPanel = page.getByRole('region', { name: 'Add a client' });
+  await createClientPanel.getByLabel('Client or organization name').fill('Ramsey Farms');
+  await createClientPanel.getByLabel('Property name').fill('Ramsey Farms');
+  await createClientPanel.getByLabel('County and state').fill('Test County, Test State');
+  await createClientPanel.getByLabel('Acreage').fill('100');
+  await createClientPanel.getByLabel('Buck name prefix (optional)').fill('rfc');
+  await createClientPanel.getByRole('button', { name: 'Add client' }).click();
+  await createClientPanel.getByText('Ramsey Farms was added to your client list.').waitFor();
+  assert.equal(accounts.find(account => account.property_name === 'Ramsey Farms')?.buck_prefix, 'RFC');
+  console.log('PASS: custom buck prefix is normalized and stored during client creation');
 } catch (error) { console.error(logs.slice(-8000)); throw error; }
 finally { await browser?.close(); app.kill('SIGTERM'); backend.close(); }

@@ -216,6 +216,10 @@ export function ClientManagement({ clients, portalOrigin }: { clients: ManagedCl
         <form action={createAction} className="form-grid management-form client-panel-form">
           <label><span>Client or organization name</span><Input name="name" placeholder="Bradley Clark Farms" required /></label>
           <label><span>Property name</span><Input name="property_name" placeholder="Bradley Clark Farms" required /></label>
+          <label><span>Buck name prefix (optional)</span><Input name="buck_prefix" placeholder="Example: BCF" autoCapitalize="characters" aria-describedby="buck-prefix-help buck-prefix-error" aria-invalid={createState.error?.startsWith("Buck prefix") || undefined} />
+            <small id="buck-prefix-help">Use up to 12 letters or numbers. Leave blank for property initials. Bucks are numbered across all years; this prefix cannot change after creation.</small>
+            {createState.error?.startsWith("Buck prefix") && <small id="buck-prefix-error" className="auth-error" role="alert">{createState.error}</small>}
+          </label>
           <label><span>County and state</span><Input name="county" placeholder="County, State" required /></label>
           <label><span>Acreage</span><Input min="1" name="acreage" placeholder="1200" required type="number" /></label>
           <div className="management-form-footer">
@@ -224,7 +228,7 @@ export function ClientManagement({ clients, portalOrigin }: { clients: ManagedCl
               {createPending ? "Adding client..." : "Add client"}
             </Button>
           </div>
-          <Feedback state={createState} />
+          {!createState.error?.startsWith("Buck prefix") && <Feedback state={createState} />}
         </form>
       </section> : null}
 
