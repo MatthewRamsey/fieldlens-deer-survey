@@ -1246,6 +1246,25 @@ select {
   flex-wrap: wrap;
 }
 
+.document-edit-form {
+  order: 1;
+  flex: 0 0 100%;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.document-edit-form .auth-field {
+  min-width: 0;
+}
+
+.document-edit-form .asset-actions {
+  margin-top: 0;
+}
+
 .camera-card dl {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

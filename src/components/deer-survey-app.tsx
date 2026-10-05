@@ -16,6 +16,7 @@ import { clientHref, clientSections, type ClientSection } from "@/lib/client-nav
 import { useMemo, useState, useTransition } from "react";
 import { ClientManagement } from "@/components/client-management";
 import { DocumentUploadForm } from "@/components/document-upload-form";
+import { DocumentDetailsEditor } from "@/components/document-details-editor";
 import { signOut } from "@/app/actions/auth";
 import { deletePortalDocument } from "@/app/actions/portal";
 import type { ManagedClient, ViewerContext } from "@/lib/portal-data";
@@ -64,6 +65,7 @@ export function DeerSurveyApp({
   const [selectedYear] = useState<YearFilter>(initialYear ?? accessibleClients.find(entry => entry.id === selectedClientId)?.surveyYears[0] ?? "Lifetime");
   const [documentMessage, setDocumentMessage] = useState("");
   const [documentError, setDocumentError] = useState("");
+  const [documentMovedYear, setDocumentMovedYear] = useState<string | null>(null);
   const [deletingDocument, startDocumentDeletion] = useTransition();
 
   const viewMode = preview ? "client" : viewer.role;
@@ -175,7 +177,7 @@ export function DeerSurveyApp({
   const documents = client.documents;
   const deleteDocument = (entry: Client["documents"][number]) => {
     if (!window.confirm(`Delete “${entry.title}”? The client will lose access to this document and its file will be permanently removed.`)) return;
-    setDocumentMessage(""); setDocumentError("");
+    setDocumentMessage(""); setDocumentError(""); setDocumentMovedYear(null);
     startDocumentDeletion(async () => {
       const result = await deletePortalDocument(client.id, entry.id);
       if (result.error) setDocumentError(result.error);
@@ -201,6 +203,14 @@ export function DeerSurveyApp({
 
           return !document.deletedAt && visibleToViewer && document.surveyYear === effectiveSelectedYear;
         });
+  const editableYears = [...new Set([
+    ...client.surveyYears,
+    ...Array.from({ length: 11 }, (_, index) => String(new Date().getFullYear() - index)),
+  ])].sort((left, right) => Number(right) - Number(left));
+  const documentCategories = [...new Set([
+    "Camera survey report", "Map export", "Harvest plan",
+    ...documents.filter(document => !document.deletedAt).map(document => document.category),
+  ])];
   const pendingDocuments = viewMode === "admin" ? documents.filter(document => document.deletedAt &&
     (effectiveSelectedYear === "Lifetime" || document.surveyYear === effectiveSelectedYear)) : [];
 
@@ -288,6 +298,9 @@ export function DeerSurveyApp({
                     </div>
                   </div>
                   {documentMessage && <p role="status" className="digital-feedback">{documentMessage}</p>}
+                  {documentMovedYear && <Link className="ghost-chip action-chip" href={adminHref("/admin/reports", client.id, documentMovedYear)}>
+                    View {documentMovedYear} archive
+                  </Link>}
                   {documentError && <p role="alert" className="digital-feedback error">{documentError}</p>}
 
                   <div className="asset-list">
@@ -306,7 +319,7 @@ export function DeerSurveyApp({
                               {document.visibility === "client" ? "Client visible" : "Admin only"}
                             </Badge>
                           </div>
-                          <p>{document.notes}</p>
+                          {document.notes && <p>{document.notes}</p>}
                           <div className="asset-meta">
                             <span>{document.uploadedAt}</span>
                             <span>{document.status}</span>
@@ -320,6 +333,13 @@ export function DeerSurveyApp({
                             >
                               {document.status === "Published" ? "Open document" : "Preview draft"}
                             </a>
+                            <DocumentDetailsEditor clientSlug={client.id} document={document} years={editableYears}
+                              categories={documentCategories} onSaved={nextYear => {
+                                setDocumentError("");
+                                setDocumentMessage("Document details saved.");
+                                setDocumentMovedYear(nextYear !== document.surveyYear ? nextYear : null);
+                                router.refresh();
+                              }} />
                             <Button className="danger-chip" disabled={deletingDocument} variant="outline" onClick={() => deleteDocument(document)}>
                               Delete document
                             </Button>
@@ -421,10 +441,9 @@ export function DeerSurveyApp({
                             </div>
                             <Badge variant="secondary" className="label-chip doe">{document.status}</Badge>
                           </div>
-                          <p>{document.notes}</p>
+                          {document.notes && <p>{document.notes}</p>}
                           <div className="asset-meta">
                             <span>{document.uploadedAt}</span>
-                            <span>{document.surveyYear}</span>
                           </div>
                           <div className="asset-actions">
                             <a

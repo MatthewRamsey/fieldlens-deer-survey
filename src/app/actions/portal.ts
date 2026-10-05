@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 export type PortalMutationState = {
   error?: string;
   success?: string;
+  fieldErrors?: Partial<Record<"title" | "category" | "surveyYear" | "visibility" | "notes", string>>;
 };
 
 function getField(formData: FormData, key: string) {
@@ -103,7 +104,7 @@ export async function uploadDocuments(
     id: file.id, client_account_id: accountId, title: file.name.replace(/\.[^.]+$/, ""),
     category, survey_year: surveyYear, file_path: file.path, file_type: buildFileType(file),
     visibility, status: visibility === "client" ? "published" : "draft",
-    notes: notes || `Uploaded into the ${surveyYear} property archive.`,
+    notes,
     upload_source: uploadSource || "Desktop upload", uploaded_by: user.id,
   })));
   if (insertError) return { error: insertError.message };
@@ -139,4 +140,38 @@ export async function deletePortalDocument(clientSlug: string, documentId: strin
     return { error: `File removed, but document cleanup is pending: ${deleteError?.message ?? "Record not removed"}. Retry deletion from Reports.` };
   revalidatePath("/", "layout");
   return { success: "Document deleted." };
+}
+
+export async function updatePortalDocument(clientSlug: string, documentId: string, formData: FormData): Promise<PortalMutationState> {
+  if (!/^[0-9a-f-]{36}$/i.test(documentId)) return { error: "Choose a valid document." };
+  const title = getField(formData, "title");
+  const category = getField(formData, "category");
+  const surveyYear = getField(formData, "survey_year");
+  const visibility = getField(formData, "visibility");
+  const notes = getField(formData, "notes");
+  const fieldErrors: NonNullable<PortalMutationState["fieldErrors"]> = {};
+  const hasControlCharacters = (value: string) => /\p{Cc}/u.test(value);
+  if (!title || title.length > 200 || hasControlCharacters(title))
+    fieldErrors.title = "Enter a title of 1–200 characters without control characters.";
+  if (!category || category.length > 100 || hasControlCharacters(category))
+    fieldErrors.category = "Enter a category of 1–100 characters without control characters.";
+  if (!/^\d{4}$/.test(surveyYear) || Number(surveyYear) < 1900 || Number(surveyYear) > new Date().getFullYear() + 1)
+    fieldErrors.surveyYear = "Choose a valid four-digit survey year.";
+  if (visibility !== "admin" && visibility !== "client")
+    fieldErrors.visibility = "Choose who can view this document.";
+  if (notes.length > 5000 || hasControlCharacters(notes.replace(/\r?\n/g, "")))
+    fieldErrors.notes = "Keep notes under 5,000 characters without control characters.";
+  if (Object.keys(fieldErrors).length) return { fieldErrors };
+
+  const { supabase, accountId } = await getAccessibleClientAccountId(clientSlug);
+  if (!accountId) return { error: "This document is not available to your admin account." };
+  const { data: updated, error } = await supabase.from("client_documents")
+    .update({ title, category, survey_year: surveyYear, visibility,
+      status: visibility === "client" ? "published" : "draft", notes })
+    .eq("id", documentId).eq("client_account_id", accountId).is("deleted_at", null)
+    .select("id").maybeSingle();
+  if (error) return { error: error.message };
+  if (!updated) return { error: "This document is no longer available." };
+  revalidatePath("/", "layout");
+  return { success: "Document details saved." };
 }

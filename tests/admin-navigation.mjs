@@ -203,7 +203,7 @@ const backend = createServer(async (req, res) => {
     const changes = JSON.parse(body);
     const entry = documents.find(item => item.id === url.searchParams.get('id')?.slice(3) && item.client_account_id === url.searchParams.get('client_account_id')?.slice(3));
     if (entry) Object.assign(entry, changes);
-    send([]); return;
+    send(entry ? [{ id: entry.id }] : []); return;
   }
   if (table === 'client_documents' && req.method === 'DELETE') {
     if (role !== 'admin' && role !== 'superadmin') { res.statusCode = 403; send({ message: 'Admin access required' }); return; }
@@ -280,6 +280,8 @@ const backend = createServer(async (req, res) => {
   };
   if (!(table in tables)) { res.statusCode = 400; send({ message: `Unexpected fixture request: ${url.pathname}` }); return; }
   let rows = tables[table];
+  if (table === 'client_documents' && role === 'client')
+    rows = rows.filter(row => !row.deleted_at && row.visibility === 'client' && row.status === 'published');
   for (const [key, value] of url.searchParams) {
     if (value.startsWith('eq.')) rows = rows.filter(row => String(row[key]) === value.slice(3));
     if (value.startsWith('in.(')) rows = rows.filter(row => value.slice(4,-1).split(',').includes(String(row[key])));
@@ -632,7 +634,60 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Delete document' }).count(), 0, 'Clients cannot delete documents');
   await login('admin');
   await visit(`/admin/reports?client=north&year=${year}`, 'Reports');
-  const firstCard = page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'habitat-a' }) });
+  let firstCard = page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'habitat-a' }) });
+  assert.equal(await firstCard.locator(':scope > p').count(), 0, 'Blank upload notes do not add redundant archive text');
+  const editedId = documents.find(entry => entry.title === 'habitat-a').id;
+  const originalPath = documents.find(entry => entry.id === editedId).file_path;
+  await firstCard.getByRole('button', { name: 'Edit details' }).click();
+  await firstCard.getByLabel('Document title').fill('Discarded change');
+  await firstCard.getByRole('button', { name: 'Cancel' }).click();
+  assert.equal(documents.find(entry => entry.id === editedId).title, 'habitat-a', 'Cancel does not save changes');
+  await firstCard.getByRole('button', { name: 'Edit details' }).click();
+  await firstCard.getByLabel('Document title').fill('   ');
+  await firstCard.getByRole('button', { name: 'Save changes' }).click();
+  await firstCard.getByText('Enter a title of 1–200 characters without control characters.').waitFor();
+  assert.equal(documents.find(entry => entry.id === editedId).title, 'habitat-a', 'Invalid details do not partially save');
+  await firstCard.getByLabel('Document title').fill('Habitat Assessment Final');
+  await firstCard.getByLabel('Document category').fill('Habitat summary');
+  await firstCard.getByLabel('Survey year').selectOption(older);
+  await firstCard.getByLabel('Visibility').selectOption('admin');
+  await firstCard.getByLabel('Notes (optional)').fill('Updated findings');
+  await firstCard.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByText('Document details saved.').waitFor();
+  await page.getByRole('link', { name: `View ${older} archive` }).waitFor();
+  assert.equal(documents.find(entry => entry.id === editedId).file_path, originalPath, 'Editing metadata preserves the file');
+  assert.equal(documents.find(entry => entry.id === editedId).status, 'draft');
+  assert.equal(await page.getByRole('heading', { name: 'Habitat Assessment Final' }).count(), 0, 'Moved report leaves its old year');
+  assert.equal((await context.request.get(`${origin}/north/${year}/documents/${editedId}`)).status(), 404, 'Old year link is invalid');
+  await page.getByRole('link', { name: `View ${older} archive` }).click();
+  await page.getByRole('heading', { name: 'Habitat Assessment Final' }).waitFor();
+  const movedCard = page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'Habitat Assessment Final' }) });
+  assert.match(await movedCard.innerText(), /Habitat summary/);
+  assert.match(await movedCard.innerText(), /Updated findings/);
+  assert.equal((await context.request.get(`${origin}/north/${older}/documents/${editedId}`)).status(), 200, 'Admin can still open the stored file');
+  await movedCard.getByRole('button', { name: 'Edit details' }).click();
+  await auditMobile('document-details-editor');
+  await login('client');
+  assert.equal((await context.request.get(`${origin}/north/${older}/documents/${editedId}`)).status(), 404, 'Client cannot open an admin-only document');
+  await visit(`/portal/reports?client=north&year=${older}`, 'Reports');
+  assert.equal(await page.getByRole('heading', { name: 'Habitat Assessment Final' }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Edit details' }).count(), 0);
+  await login('admin');
+  await visit(`/admin/reports?client=north&year=${older}`, 'Reports');
+  const restoreCard = page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'Habitat Assessment Final' }) });
+  await restoreCard.getByRole('button', { name: 'Edit details' }).click();
+  await restoreCard.getByLabel('Document title').fill('habitat-a');
+  await restoreCard.getByLabel('Survey year').selectOption(year);
+  await restoreCard.getByLabel('Visibility').selectOption('client');
+  await restoreCard.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByText('Document details saved.').waitFor();
+  await login('client');
+  assert.equal((await context.request.get(`${origin}/north/${year}/documents/${editedId}`)).status(), 200, 'Re-published report is accessible');
+  await visit(`/portal/reports?client=north&year=${year}`, 'Reports');
+  assert.match(await page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'habitat-a' }) }).innerText(), /Habitat summary/);
+  await login('admin');
+  await visit(`/admin/reports?client=north&year=${year}`, 'Reports');
+  firstCard = page.locator('.asset-card').filter({ has: page.getByRole('heading', { name: 'habitat-a' }) });
   const firstLink = await firstCard.getByRole('link', { name: 'Open document' }).getAttribute('href');
   assert.equal((await context.request.get(origin + firstLink)).status(), 200);
   page.once('dialog', dialog => dialog.dismiss());
