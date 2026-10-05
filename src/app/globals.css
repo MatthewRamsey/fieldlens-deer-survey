@@ -2757,7 +2757,55 @@ body.viewer-open {
 .client-confirm-form p { color: var(--muted-foreground); line-height: 1.5; }
 .client-confirm-form label { display: grid; width: min(100%, 460px); gap: 7px; font-size: 13px; font-weight: 700; }
 .client-confirm-form [data-slot="button"] { min-height: 40px; }
-.create-client-panel { border: 1px solid var(--border); border-radius: var(--radius); background: var(--secondary); }
+.create-client-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(41, 37, 36, 0.04);
+}
+.create-client-panel .client-panel-form { row-gap: 18px; }
+.create-client-panel .client-panel-form label {
+  gap: 8px;
+  align-content: start;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 650;
+}
+.create-client-panel .client-panel-form [data-slot="input"] {
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--input);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 450;
+}
+.create-client-panel .client-panel-form [data-slot="input"]:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
+}
+.create-client-panel .client-panel-form [data-slot="input"]::placeholder {
+  color: color-mix(in srgb, var(--foreground) 52%, var(--card));
+  opacity: 1;
+  font-style: normal;
+  font-weight: 400;
+}
+.create-client-panel .client-panel-form small {
+  color: color-mix(in srgb, var(--foreground) 70%, var(--card));
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+.create-client-panel .client-panel-form small.auth-error { color: var(--destructive); }
+.create-client-panel .management-form-footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.create-client-panel .management-form-footer p {
+  color: color-mix(in srgb, var(--foreground) 70%, var(--card));
+  font-weight: 400;
+}
 
 @media (max-width: 760px) {
   .client-management-header-actions { width: 100%; justify-content: space-between; }

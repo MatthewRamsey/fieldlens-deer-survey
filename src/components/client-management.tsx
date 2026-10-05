@@ -214,14 +214,14 @@ export function ClientManagement({ clients, portalOrigin }: { clients: ManagedCl
       {createOpen ? <section className="client-card-panel create-client-panel" id="create-client-panel" aria-label="Add a client">
         <div className="client-card-panel-heading"><div><p className="eyebrow">New property</p><h3>Add a client</h3></div><Button variant="ghost" size="sm" type="button" onClick={() => setCreateOpen(false)}>Close</Button></div>
         <form action={createAction} className="form-grid management-form client-panel-form">
-          <label><span>Client or organization name</span><Input name="name" placeholder="Bradley Clark Farms" required /></label>
-          <label><span>Property name</span><Input name="property_name" placeholder="Bradley Clark Farms" required /></label>
-          <label><span>Buck name prefix (optional)</span><Input name="buck_prefix" placeholder="Example: BCF" autoCapitalize="characters" aria-describedby="buck-prefix-help buck-prefix-error" aria-invalid={createState.error?.startsWith("Buck prefix") || undefined} />
+          <label><span>Client or organization name</span><Input name="name" placeholder="e.g. Bradley Clark Farms" required /></label>
+          <label><span>Property name</span><Input name="property_name" placeholder="e.g. Bradley Clark Farms" required /></label>
+          <label><span>Buck name prefix (optional)</span><Input name="buck_prefix" placeholder="e.g. BCF" autoCapitalize="characters" aria-describedby={createState.error?.startsWith("Buck prefix") ? "buck-prefix-help buck-prefix-error" : "buck-prefix-help"} aria-invalid={createState.error?.startsWith("Buck prefix") || undefined} />
             <small id="buck-prefix-help">Use up to 12 letters or numbers. Leave blank for property initials. Bucks are numbered across all years; this prefix cannot change after creation.</small>
             {createState.error?.startsWith("Buck prefix") && <small id="buck-prefix-error" className="auth-error" role="alert">{createState.error}</small>}
           </label>
-          <label><span>County and state</span><Input name="county" placeholder="County, State" required /></label>
-          <label><span>Acreage</span><Input min="1" name="acreage" placeholder="1200" required type="number" /></label>
+          <label><span>County and state</span><Input name="county" placeholder="e.g. Macon County, Alabama" required /></label>
+          <label><span>Acreage</span><Input min="1" name="acreage" placeholder="e.g. 1200" required type="number" /></label>
           <div className="management-form-footer">
             <p>The new client will be owned by your admin account.</p>
             <Button disabled={createPending} type="submit">
